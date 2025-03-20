@@ -1,0 +1,13 @@
+.wrapper {
+    width: 100vw;
+    height: auto;
+    background-color: var(--heading-color);
+    color: var(--text-color);
+}
+.header__content{
+    display: flex;
+    justify-content: space-between;
+    align-items: first baseline;
+    padding: 24px 24px;
+    height: auto;
+}

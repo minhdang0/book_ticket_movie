@@ -1,0 +1,11 @@
+const config = {
+    routes: {
+        home:'/',
+        showtime:'/showtime',
+        movie:'/movie',
+        theater:'/theater',
+        priceTicket:'/price_ticket'
+    }
+}
+
+export default config;
