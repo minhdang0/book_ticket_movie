@@ -1,6 +1,7 @@
 export interface IMovie{
     name:string;
-    des?:string;
-    time:number;
-    data?: Date;
+    description?:string;
+    duration:number;
+    date?: Date;
+    category:string;
 }
