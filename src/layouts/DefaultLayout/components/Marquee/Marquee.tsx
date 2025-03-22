@@ -3,15 +3,21 @@ import styles from './Marquee.module.scss';
 import { Link } from 'react-router-dom';
 
 const announcement = [
-  'Chào mừng bạn đến với website!',
-  'Đăng nhập ngay để nhận ưu đãi đặc biệt!',
-  'Khuyến mãi sốc chỉ có hôm nay!',
-  'Hỗ trợ khách hàng 24/7 - Liên hệ ngay!'
+  'Phim bom tấn mới đổ bộ - Sẵn sàng bùng nổ màn ảnh!',
+  'Những pha hành động mãn nhãn không thể bỏ lỡ!',
+  'Đặt vé ngay hôm nay - Trải nghiệm điện ảnh đỉnh cao!',
+  'Mua vé ngay để nhận ưu đãi siêu hấp dẫn!',
+  'Combo bắp nước giá sốc - Chỉ có tại rạp!',
+  'Cảm xúc thăng hoa cùng những siêu phẩm điện ảnh!',
+  'Review cực hot từ khán giả - Đừng bỏ lỡ!',
+  'Phim hay mỗi tuần, rạp chiếu luôn sẵn sàng đón bạn!',
+  'Vé giới hạn - Nhanh tay kẻo hết!',
+  'Xem ngay trailer để không bỏ lỡ siêu phẩm!'
 ];
 
 const Marquee: React.FC = () => {
-  const [index, setIndex] = useState(0);
-  const [fade, setFade] = useState(styles.marqueeFadeIn); 
+  const [index, setIndex] = useState<number>(0);
+  const [fade, setFade] = useState<string>(styles.marqueeFadeIn); 
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,7 +39,7 @@ const Marquee: React.FC = () => {
       <div className={styles.auth}>
         <ul>
             <li><Link to="/login">Đăng Nhập</Link></li>
-            <li><Link to="register">Đăng ký</Link></li>
+            <li><Link to="/register">Đăng ký</Link></li>
         </ul>
       </div>
     </div>

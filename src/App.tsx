@@ -3,6 +3,7 @@ import './App.css';
 import DefaultLayout from './layouts/DefaultLayout'
 import ScrollTop from './components/ScrollTop/ScrollTop';
 import routes from './routes';
+import NoLayout from './layouts/NoLayout/NoLayout';
 
 
 const App: React.FC = () => {
@@ -10,12 +11,17 @@ const App: React.FC = () => {
     <BrowserRouter>
       <ScrollTop />
       <Routes>
-        <Route element={<DefaultLayout />}>
-            {routes.map(( route) => {
-              const Component = route.component;
-              return <Route key={route.path} path={route.path} element={<Component />} />
-            })}
-        </Route>
+        {routes.map(( route) => {
+          const Layout = route.layout === undefined ? DefaultLayout : route.layout || NoLayout;
+          const Component = route.component;
+
+          return (
+              <Route key={route.path} element={<Layout />} >
+                <Route path={route.path} element={<Component />} />
+              </Route>
+          )
+        })}
+        
       </Routes>
     </BrowserRouter>
   );

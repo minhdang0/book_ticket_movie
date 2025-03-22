@@ -4,7 +4,9 @@ const config = {
         showtime:'/showtime',
         movie:'/movie',
         theater:'/theater',
-        priceTicket:'/price_ticket'
+        priceTicket:'/price_ticket',
+        login:'login',
+        register:'register'
     }
 }
 

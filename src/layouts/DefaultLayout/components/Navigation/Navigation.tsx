@@ -11,7 +11,7 @@ const Navigation:React.FC<Props> = () => {
         <nav className={styles.nav__container}>
             <ul>
                 {routes.map((route) => {
-                    return <li key={route.path}>
+                    return route.display && <li key={route.path}>
                       <NavLink 
                       className={({isActive})=> isActive ? styles.active: ""} 
                       to={route.path}>{route.name}
