@@ -41,7 +41,7 @@ const Login: React.FC = () => {
 
       const res = await authService.currentUser();
       setUser(res.user);
-
+      console.log(user)
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
       console.log(error)
