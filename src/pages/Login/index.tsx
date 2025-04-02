@@ -7,7 +7,7 @@ import * as httpRequests from '../../utils/api/httpRequests';
 import styles from './Login.module.scss';
 import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faLock, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import Button from '../../components/Button';
 import { userSchemaLogin } from '../../schema/schema';
 import config from '../../config';
@@ -20,7 +20,7 @@ type Inputs = {
 };
 
 const Login: React.FC = () => {
-  const [user, setUser] = useState(null);
+  const [isLoading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(userSchemaLogin),
@@ -30,7 +30,7 @@ const Login: React.FC = () => {
   const query = useQuery();
 
   const onSubmit = async (data: Inputs) => {
-
+    setLoading(true)
     const requestData = {
       email: data.email,
       password: data.password,
@@ -41,14 +41,13 @@ const Login: React.FC = () => {
       const response = await authService.login(requestData);
       httpRequests.setToken(response.access_token);
 
-      const res = await authService.currentUser();
-      setUser(res.user);
-      console.log(user);
-
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
       console.log(error);
       setErrorMessage("errorr");
+    }
+    finally {
+      setLoading(false);
     }
 
   };
@@ -72,7 +71,7 @@ const Login: React.FC = () => {
         </div>
 
         {/* Submit */}
-        <Button primary>Login</Button>
+        <Button primary>{isLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Đăng nhập'}</Button>
         <div className={clsx('mt-3', 'mb-3')}>
           <Link to='/'>Quay về trang chủ</Link>
           <Link to='/register'>Chuyển đến trang đăng ký</Link>
