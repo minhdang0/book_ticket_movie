@@ -42,7 +42,7 @@ export const del = (url:string, config? :AxiosRequestConfig) => {
 };
 
 export const setToken = (token: string) => {
-    httpRequest.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    httpRequest.defaults.headers["Authorization"] = `Bearer ${token}`;
     localStorage.setItem("token", token);
 };
 

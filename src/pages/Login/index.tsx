@@ -20,6 +20,7 @@ type Inputs = {
 };
 
 const Login: React.FC = () => {
+  const [user, setUser] = useState(null);
   const [isLoading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -40,11 +41,13 @@ const Login: React.FC = () => {
     try {
       const response = await authService.login(requestData);
       httpRequests.setToken(response.access_token);
+      const res = await authService.currentUser();
+      setUser(res.user);
+      console.log(user);
 
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
-      console.log(error);
-      setErrorMessage("errorr");
+      setErrorMessage("error");
     }
     finally {
       setLoading(false);
