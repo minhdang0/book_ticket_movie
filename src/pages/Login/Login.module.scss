@@ -1,0 +1,50 @@
+.form__login {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 400px;
+    background-color: aliceblue;
+    transform: translate(-50%, -50%);
+    border-radius: 10px;
+    padding: 20px;
+    font-family: 'Source Sans Pro', sans-serif;
+
+    div {
+        position: relative;
+        padding: 10px 0;
+    }
+
+    label {
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        color: gray;
+        transition: all 0.3s ease-in-out;
+        background-color: aliceblue;
+        padding: 0 5px;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid gray;
+        border-radius: 5px;
+        outline: none;
+        background: transparent;
+
+        &:focus,
+        &:not(:placeholder-shown) {
+            border-color: blue;
+        }
+
+        &:focus + label,
+        &:not(:placeholder-shown) + label {
+            top: 0;
+            left: 8px;
+            font-size: 12px;
+            color: blue;
+        }
+    }
+}

@@ -28,12 +28,13 @@
     font-size: calc(13px + .6vw);
     letter-spacing: 0.02%;
     font-family: "Oswald" , sans-serif;
-    font-weight: 400;
+    font-weight: 600;
     cursor: pointer;
     transition: color 0.3s ease-in-out;
     &:hover {
         color: #BB0000;
     }
+    font-size: 16px;
 }
 
 .movie__info {
@@ -46,27 +47,9 @@
 
 .movie__button  {
     width: calc(100% );
-    border: none;
     padding: 8px 12px;
     align-items: center;
-    border-radius: 10px;
+    border-radius: 25px ;
     background-color: #212529;
-    color: #fff;
-    font-weight: 600;
-    font-size: 18px;
-    font-family: 'Source Sans Pro', sans-serif;
-    box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
-    user-select: none;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-    &:hover {
-        background-color: #BB0000; 
-        box-shadow: 0 0 15px #BB0000; 
-        transform: scale(0.9);
-    }
-    &:active {
-        transform: scale(0.95); 
-        box-shadow: none;
-    }
+   
 }

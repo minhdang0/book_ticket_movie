@@ -1,0 +1,27 @@
+.btn {
+    min-height: 110px;
+    min-height: 30px;
+    border: none;
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 18px;
+    font-family: 'Source Sans Pro', sans-serif;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+    user-select: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    &:hover {
+        background-color: #BB0000; 
+        box-shadow: 0 0 15px #BB0000; 
+        transform: scale(0.9);
+    }
+    &:active {
+        transform: scale(0.95); 
+        box-shadow: none;
+    }
+}
+
+.primary {
+    background-color: rgba(11, 158, 237, 0.956);
+}

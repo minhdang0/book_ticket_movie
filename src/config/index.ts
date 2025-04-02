@@ -5,8 +5,9 @@ const config = {
         movie:'/movie',
         theater:'/theater',
         priceTicket:'/price_ticket',
-        login:'login',
-        register:'register'
+        login:'/login',
+        register:'/register',
+        user:`/p/:userId`
     }
 }
 

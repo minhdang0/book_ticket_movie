@@ -1,6 +1,7 @@
 import React from 'react';
 import { IMovie } from './../../utils/interfaces/movie';
 import styles from './MovieCard.module.scss';
+import Button from '../Button';
 
 type Props = {
   movie: IMovie;
@@ -16,7 +17,7 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
         <h3 className={styles.movie__title}>{movie.name}</h3>
         <p className={styles.movie__info}><span>Thời lượng:</span> {movie.duration} phút</p>
         <p className={styles.movie__info}><span>Thể loại:</span> {movie.category.join(", ")}</p>
-        <button className={styles.movie__button}>Mua vé</button>
+        <Button className={styles.movie__button}>Mua vé</Button>
       </div>
     </div>
   );

@@ -1,11 +1,16 @@
 .nav__container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: max-content;
     color: var(--text-color);
+   
     ul{
         display: flex;
         column-gap: 30px;
         align-items: center;
         justify-content: center;
+        flex: 1;
         li{
             display: inline-block;
             a{

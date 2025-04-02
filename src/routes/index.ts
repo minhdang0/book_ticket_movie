@@ -7,6 +7,8 @@ import PriceTicket from '../pages/PriceTicket';
 import { IRoutes } from './../utils/interfaces/routes';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import Profile from '../pages/Profile';
+import NoFooterLayout from '../layouts/NoFooterLayout/NoFooterLayout';
 
 const routes: IRoutes[] = [ 
     {   
@@ -43,13 +45,23 @@ const routes: IRoutes[] = [
         name:"Đăng Nhập",
         path: config.routes.login,
         component: Login,
+        layout: null,
         display:false
     },
     {
         name:"Đăng Ký",
         path: config.routes.register,
         component: Register,
+        layout:null,
         display:false
+    },
+    {
+        name:"User",
+        path: config.routes.user,
+        component: Profile,
+        layout:NoFooterLayout,  
+        display:false,
+        protected:true
     }
 ]
 

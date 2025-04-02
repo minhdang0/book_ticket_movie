@@ -1,12 +1,13 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
+import styles from './NoLayout.module.scss'
 
 
-const NoLayout:React.FC = () => {
+const NoLayout: React.FC = () => {
   return (
-    <>
-        <Outlet/>
-    </>
+    <main className={styles.content__layout} >
+      <Outlet />
+    </main>
   )
 }
 
