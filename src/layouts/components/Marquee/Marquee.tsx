@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import styles from './Marquee.module.scss';
 import { Link, useNavigate } from 'react-router-dom';
 import useUser from '../../../hooks/useUser';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 const announcement = [
   'Phim bom tấn mới đổ bộ - Sẵn sàng bùng nổ màn ảnh!',
@@ -20,6 +22,7 @@ const Marquee: React.FC = () => {
   const [index, setIndex] = useState<number>(0);
   const [fade, setFade] = useState<string>(styles.marqueeFadeIn);
   const [userName, setUserName] = useState<string>('');
+  const [isLoading, setLoading] = useState(false);
   const navigate = useNavigate();
   const user = useUser();
 
@@ -32,6 +35,8 @@ const Marquee: React.FC = () => {
 
   const handleLogout = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
       const res = await fetch('https://api01.f8team.dev/api/auth/logout', {
         method: 'POST',
@@ -49,6 +54,9 @@ const Marquee: React.FC = () => {
       navigate('/');
     } catch (error) {
       console.log(error);
+    }
+    finally {
+      setLoading(false)
     }
   };
 
@@ -73,7 +81,8 @@ const Marquee: React.FC = () => {
       <div className={`${styles.marqueeContent} ${fade}`}>
         <span>{announcement[index]}</span>
       </div>
-      {userName ? (
+
+      {userName ? isLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : (
         <div className={styles.auth}>
           <span onClick={handleProfileClick} style={{ cursor: 'pointer', color: 'blue' }}>
             Welcome, {userName}!

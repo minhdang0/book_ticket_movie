@@ -35,17 +35,20 @@ const Login: React.FC = () => {
       email: data.email,
       password: data.password,
     }
+    console.log(requestData)
 
     try {
       const response = await authService.login(requestData);
-      if (response.status === "error") throw new Error(response.message);
       httpRequests.setToken(response.access_token);
-      console.log(user);
+
       const res = await authService.currentUser();
       setUser(res.user);
+      console.log(user);
+
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
-      setErrorMessage("Đăng nhập thất bại! Vui lòng thử lại.");
+      console.log(error);
+      setErrorMessage("errorr");
     }
 
   };
