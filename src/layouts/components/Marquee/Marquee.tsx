@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import styles from './Marquee.module.scss';
 import { Link, useNavigate } from 'react-router-dom';
 import useUser from '../../../hooks/useUser';
-import Button from '../../../components/Button';
 
 const announcement = [
   'Phim bom tấn mới đổ bộ - Sẵn sàng bùng nổ màn ảnh!',

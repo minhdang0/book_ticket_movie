@@ -10,7 +10,7 @@ type Props = {
   type?: string;
 };
 
-const Input: React.FC<Props> = ({ name, label, icon, register, errors, type = 'text' }) => {
+const Input: React.FC<Props> = ({ name, label, register, errors, type = 'text' }) => {
   return (
     <div className='mb-3'>
       <label htmlFor={name}>
