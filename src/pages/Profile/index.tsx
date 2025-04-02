@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import Button from "../../components/Button";
 import useLoading from "../../hooks/useLoading";
+import Loading from "../../components/Loading/Loading";
 
 interface User {
     firstName: string;
@@ -126,82 +127,85 @@ const Profile: React.FC = () => {
 
         }, 800)
     })
-    if (loading) return <p>Đang tải...</p>;
+    if (loading) return <Loading />
     if (errorMessage) return <p>{errorMessage}</p>;
     if (!userInfo) return <p>Không có dữ liệu người dùng.</p>;
 
     return (
-        <div className="profile-container">
-            {editing ? (
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <div>
-                        <label>Họ:</label>
-                        <input {...register("firstName")} defaultValue={userInfo.firstName} />
-                        {errors.firstName && <p>{errors.firstName.message}</p>}
-                    </div>
+        <>
 
-                    <div>
-                        <label>Tên:</label>
-                        <input {...register("lastName")} defaultValue={userInfo.lastName} />
-                        {errors.lastName && <p>{errors.lastName.message}</p>}
-                    </div>
+            <div className="profile-container">
+                {editing ? (
+                    <form onSubmit={handleSubmit(onSubmit)}>
+                        <div>
+                            <label>Họ:</label>
+                            <input {...register("firstName")} defaultValue={userInfo.firstName} />
+                            {errors.firstName && <p>{errors.firstName.message}</p>}
+                        </div>
 
-                    <div>
-                        <label>Tuổi:</label>
-                        <input type="number" {...register("age")} defaultValue={userInfo.age || ''} min={1} />
-                        {errors.age && <p>{errors.age.message}</p>}
-                    </div>
+                        <div>
+                            <label>Tên:</label>
+                            <input {...register("lastName")} defaultValue={userInfo.lastName} />
+                            {errors.lastName && <p>{errors.lastName.message}</p>}
+                        </div>
 
-                    <div>
-                        <label>Giới tính:</label>
-                        <input type="text" {...register("gender")} defaultValue={userInfo.gender || ''} />
-                        {errors.gender && <p>{errors.gender.message}</p>}
-                    </div>
+                        <div>
+                            <label>Tuổi:</label>
+                            <input type="number" {...register("age")} defaultValue={userInfo.age || ''} min={1} />
+                            {errors.age && <p>{errors.age.message}</p>}
+                        </div>
 
-                    <div>
-                        <label>Email:</label>
-                        <input {...register("email")} defaultValue={userInfo.email} />
-                        {errors.email && <p>{errors.email.message}</p>}
-                    </div>
+                        <div>
+                            <label>Giới tính:</label>
+                            <input type="text" {...register("gender")} defaultValue={userInfo.gender || ''} />
+                            {errors.gender && <p>{errors.gender.message}</p>}
+                        </div>
 
-                    <div>
-                        <label>Số điện thoại:</label>
-                        <input {...register("phone")} defaultValue={userInfo.phone} />
-                        {errors.phone && <p>{errors.phone.message}</p>}
-                    </div>
+                        <div>
+                            <label>Email:</label>
+                            <input {...register("email")} defaultValue={userInfo.email} />
+                            {errors.email && <p>{errors.email.message}</p>}
+                        </div>
 
-                    <div>
-                        <label>Tên đăng nhập:</label>
-                        <input {...register("username")} defaultValue={userInfo.username} />
-                        {errors.username && <p>{errors.username.message}</p>}
-                    </div>
+                        <div>
+                            <label>Số điện thoại:</label>
+                            <input {...register("phone")} defaultValue={userInfo.phone} />
+                            {errors.phone && <p>{errors.phone.message}</p>}
+                        </div>
 
-                    <div>
-                        <label>Ngày sinh:</label>
-                        <input type="date" {...register("birthDate")} defaultValue={userInfo.birthDate || ''} />
-                        {errors.birthDate && <p>{errors.birthDate.message}</p>}
-                    </div>
+                        <div>
+                            <label>Tên đăng nhập:</label>
+                            <input {...register("username")} defaultValue={userInfo.username} />
+                            {errors.username && <p>{errors.username.message}</p>}
+                        </div>
 
-                    <button type="submit">Lưu thay đổi</button>
-                    <button type="button" onClick={handleEditing}>Hủy</button>
-                </form>
-            ) : (
-                <div>
-                    <h1>Hồ sơ của {userInfo.firstName} {userInfo.lastName}</h1>
-                    {userInfo.image && <img src={userInfo.image} alt={userInfo.username} className="profile-img" />}
-                    <p><strong>Email:</strong> {userInfo.email}</p>
-                    <p><strong>Trạng thái tài khoản:</strong> {userInfo.emailVerifiedAt ? "Tài khoản đã được xác minh" : "Tài khoản chưa xác minh"}</p>
-                    <p><strong>Giới tính:</strong> {userInfo.gender || "Chưa cập nhật"}</p>
-                    <p><strong>Tuổi:</strong> {userInfo.age !== null ? userInfo.age : "Chưa cập nhật"}</p>
-                    <p><strong>Số điện thoại:</strong> {userInfo.phone || "Chưa cập nhật"}</p>
-                    <p><strong>Ngày sinh:</strong> {userInfo.birthDate || "Chưa cập nhật"}</p>
-                    <p><strong>Tham gia ngày:</strong> {new Date(userInfo.createdAt).toLocaleDateString()}</p>
+                        <div>
+                            <label>Ngày sinh:</label>
+                            <input type="date" {...register("birthDate")} defaultValue={userInfo.birthDate || ''} />
+                            {errors.birthDate && <p>{errors.birthDate.message}</p>}
+                        </div>
+
+                        <button type="submit">Lưu thay đổi</button>
+                        <button type="button" onClick={handleEditing}>Hủy</button>
+                    </form>
+                ) : (
                     <div>
-                        <Button primary onClick={handleEditing}>Chỉnh sửa thông tin</Button>
+                        <h1>Hồ sơ của {userInfo.firstName} {userInfo.lastName}</h1>
+                        {userInfo.image && <img src={userInfo.image} alt={userInfo.username} className="profile-img" />}
+                        <p><strong>Email:</strong> {userInfo.email}</p>
+                        <p><strong>Trạng thái tài khoản:</strong> {userInfo.emailVerifiedAt ? "Tài khoản đã được xác minh" : "Tài khoản chưa xác minh"}</p>
+                        <p><strong>Giới tính:</strong> {userInfo.gender || "Chưa cập nhật"}</p>
+                        <p><strong>Tuổi:</strong> {userInfo.age !== null ? userInfo.age : "Chưa cập nhật"}</p>
+                        <p><strong>Số điện thoại:</strong> {userInfo.phone || "Chưa cập nhật"}</p>
+                        <p><strong>Ngày sinh:</strong> {userInfo.birthDate || "Chưa cập nhật"}</p>
+                        <p><strong>Tham gia ngày:</strong> {new Date(userInfo.createdAt).toLocaleDateString()}</p>
+                        <div>
+                            <Button primary onClick={handleEditing}>Chỉnh sửa thông tin</Button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </>
     );
 };
 

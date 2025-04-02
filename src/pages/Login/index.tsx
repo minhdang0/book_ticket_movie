@@ -12,6 +12,7 @@ import Button from '../../components/Button';
 import { userSchemaLogin } from '../../schema/schema';
 import config from '../../config';
 import useQuery from '../../hooks/useQuery';
+import ShowNotification from '../../components/ShowNotification/ShowNotification';
 
 type Inputs = {
   email: string;
@@ -20,6 +21,7 @@ type Inputs = {
 
 const Login: React.FC = () => {
   const [user, setUser] = useState(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(userSchemaLogin),
   });
@@ -36,42 +38,44 @@ const Login: React.FC = () => {
 
     try {
       const response = await authService.login(requestData);
-      if (response.status === 'error') throw response;
+      if (response.status === "error") throw new Error(response.message);
       httpRequests.setToken(response.access_token);
-
+      console.log(user);
       const res = await authService.currentUser();
       setUser(res.user);
-      console.log(user)
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
-      console.log(error)
+      setErrorMessage("Đăng nhập thất bại! Vui lòng thử lại.");
     }
 
   };
 
 
   return (
-    <form className={clsx(styles.form__login)} onSubmit={handleSubmit(onSubmit)}>
-      {/* Email */}
-      <div className='mb-3'>
-        <label htmlFor='email'><FontAwesomeIcon icon={faEnvelope} />Email</label>
-        <input type='email' id='email' {...register("email")} />
-        {errors.email && <p>{errors.email.message}</p>}
-      </div>
-      {/* Password */}
-      <div className='mb-3'>
-        <label htmlFor='password'><FontAwesomeIcon icon={faLock} />Password</label>
-        <input type='password' id='password' {...register("password")} />
-        {errors.password && <p>{errors.password.message}</p>}
-      </div>
+    <>
+      {errorMessage && <ShowNotification title="Lỗi đăng nhập" message={errorMessage} type="error" />}
+      <form className={clsx(styles.form__login)} onSubmit={handleSubmit(onSubmit)}>
+        {/* Email */}
+        <div className='mb-3'>
+          <label htmlFor='email'><FontAwesomeIcon icon={faEnvelope} />Email</label>
+          <input type='email' id='email' {...register("email")} />
+          {errors.email && <p>{errors.email.message}</p>}
+        </div>
+        {/* Password */}
+        <div className='mb-3'>
+          <label htmlFor='password'><FontAwesomeIcon icon={faLock} />Password</label>
+          <input type='password' id='password' {...register("password")} />
+          {errors.password && <p>{errors.password.message}</p>}
+        </div>
 
-      {/* Submit */}
-      <Button primary>Login</Button>
-      <div className={clsx('mt-3', 'mb-3')}>
-        <Link to='/'>Quay về trang chủ</Link>
-        <Link to='/register'>Chuyển đến trang đăng ký</Link>
-      </div>
-    </form>
+        {/* Submit */}
+        <Button primary>Login</Button>
+        <div className={clsx('mt-3', 'mb-3')}>
+          <Link to='/'>Quay về trang chủ</Link>
+          <Link to='/register'>Chuyển đến trang đăng ký</Link>
+        </div>
+      </form>
+    </>
   );
 };
 
