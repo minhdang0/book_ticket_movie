@@ -48,7 +48,27 @@ const Register: React.FC = () => {
 
     try {
       const response = await authService.register(requestData);
-      if (response.status === 'error') throw response;
+
+      if (response.status === 'error') {
+        if (response.errors?.email) {
+          setError("email", {
+            type: "manual",
+            message: response.errors.email,
+          });
+        }
+
+        if (response.errors?.password) {
+          setError("password", {
+            type: "manual",
+            message: response.errors.password,
+          });
+        }
+        if (response.errors?.general) {
+          console.log(response.errors.general);
+        }
+
+        throw response;
+      }
 
       httpRequests.setToken(response.access_token);
       navigate('/login');

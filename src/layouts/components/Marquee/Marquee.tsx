@@ -33,7 +33,7 @@ const Marquee: React.FC = () => {
     }
   }, [user]);
 
-  console.log(userName);
+
 
   const handleLogout = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -62,7 +62,6 @@ const Marquee: React.FC = () => {
       setLoading(false)
     }
   };
-
   useEffect(() => {
     const interval = setInterval(() => {
       setFade(styles.marqueeFadeout);
@@ -73,7 +72,7 @@ const Marquee: React.FC = () => {
     }, 7000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [index]);
 
   const handleProfileClick = () => {
     navigate(`/p/${user?.id}`);

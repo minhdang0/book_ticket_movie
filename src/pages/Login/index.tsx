@@ -25,7 +25,7 @@ const Login: React.FC = () => {
   const { user, setUser } = useUser();
   const { loading, setLoading } = useLoading();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, setError, formState: { errors } } = useForm({
     resolver: yupResolver(userSchemaLogin),
   });
 
@@ -40,6 +40,16 @@ const Login: React.FC = () => {
     }
     try {
       const response = await authService.login(requestData);
+      if (response.status === 'error') {
+        if (response.message) {
+          setError("password", {
+            type: "manual",
+            message: response.message,
+          });
+        }
+        setErrorMessage(response.message);
+        throw response;
+      }
       httpRequests.setToken(response.access_token);
       const res = await authService.currentUser();
       setUser(res.user);
@@ -47,7 +57,7 @@ const Login: React.FC = () => {
 
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
-      setErrorMessage("error");
+      console.log(error)
     }
     finally {
       setLoading(false);
