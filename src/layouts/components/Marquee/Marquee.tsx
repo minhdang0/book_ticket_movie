@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useUser from '../../../hooks/useUser';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import useLoading from '../../../hooks/useLoading';
 
 const announcement = [
   'Phim bom tấn mới đổ bộ - Sẵn sàng bùng nổ màn ảnh!',
@@ -22,9 +23,9 @@ const Marquee: React.FC = () => {
   const [index, setIndex] = useState<number>(0);
   const [fade, setFade] = useState<string>(styles.marqueeFadeIn);
   const [userName, setUserName] = useState<string>('');
-  const [isLoading, setLoading] = useState(false);
+  const { loading, setLoading } = useLoading();
   const navigate = useNavigate();
-  const user = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
     if (user && typeof user.firstName === 'string') {
@@ -32,6 +33,7 @@ const Marquee: React.FC = () => {
     }
   }, [user]);
 
+  console.log(userName);
 
   const handleLogout = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -50,8 +52,9 @@ const Marquee: React.FC = () => {
       }
 
       localStorage.removeItem('token');
-      setUserName('');
       navigate('/');
+      setUserName('');
+      setLoading(false)
     } catch (error) {
       console.log(error);
     }
@@ -82,7 +85,7 @@ const Marquee: React.FC = () => {
         <span>{announcement[index]}</span>
       </div>
 
-      {userName ? isLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : (
+      {userName ? loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (
         <div className={styles.auth}>
           <span onClick={handleProfileClick} style={{ cursor: 'pointer', color: 'blue' }}>
             Welcome, {userName}!

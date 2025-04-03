@@ -13,7 +13,7 @@ interface User {
 
 interface UserContextType {
     user: User | null;
-    loading: boolean;
+    setUser: (value: User) => void;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -24,24 +24,20 @@ type Props = {
 
 export const UserProvider: React.FC<Props> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-
     useEffect(() => {
         const getUserApi = async () => {
-            setLoading(true);
+
             try {
                 const data = await authService.currentUser();
                 setUser(data.user);
             } catch (error) {
                 console.error("Error fetching user:", error);
-            } finally {
-                setLoading(false);
             }
         };
         getUserApi();
     }, []);
     return (
-        <UserContext.Provider value={{ user, loading }}>
+        <UserContext.Provider value={{ user, setUser }}>
             {children}
         </UserContext.Provider>
     );

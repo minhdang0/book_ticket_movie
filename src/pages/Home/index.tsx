@@ -12,9 +12,9 @@ type Props = {
 }
 
 const Home: React.FC<Props> = () => {
-  const isLoading = useLoading();
+  const { loading } = useLoading();
 
-  if (isLoading) return <Loading />;
+  if (loading) return <Loading />;
   return (
     <>
       <Container>

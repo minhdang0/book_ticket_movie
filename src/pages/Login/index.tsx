@@ -13,6 +13,8 @@ import { userSchemaLogin } from '../../schema/schema';
 import config from '../../config';
 import useQuery from '../../hooks/useQuery';
 import ShowNotification from '../../components/ShowNotification/ShowNotification';
+import useLoading from '../../hooks/useLoading';
+import useUser from '../../hooks/useUser';
 
 type Inputs = {
   email: string;
@@ -20,8 +22,8 @@ type Inputs = {
 };
 
 const Login: React.FC = () => {
-  const [user, setUser] = useState(null);
-  const [isLoading, setLoading] = useState(false);
+  const { user, setUser } = useUser();
+  const { loading, setLoading } = useLoading();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(userSchemaLogin),
@@ -36,8 +38,6 @@ const Login: React.FC = () => {
       email: data.email,
       password: data.password,
     }
-    console.log(requestData)
-
     try {
       const response = await authService.login(requestData);
       httpRequests.setToken(response.access_token);
@@ -74,7 +74,7 @@ const Login: React.FC = () => {
         </div>
 
         {/* Submit */}
-        <Button primary>{isLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Đăng nhập'}</Button>
+        <Button primary>{loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Đăng nhập'}</Button>
         <div className={clsx('mt-3', 'mb-3')}>
           <Link to='/'>Quay về trang chủ</Link>
           <Link to='/register'>Chuyển đến trang đăng ký</Link>

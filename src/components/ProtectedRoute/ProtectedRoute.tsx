@@ -18,7 +18,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         (async () => {
             try {
                 const data = await authService.currentUser();
-                console.log(data.user);
                 setCurrentUser(data.user);
                 setLoading(false)
             } catch (error) {

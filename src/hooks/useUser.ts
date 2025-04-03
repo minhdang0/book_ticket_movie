@@ -3,8 +3,10 @@ import { UserContext } from "../contexts/UserContext";
 
 function useUser() {
     const data = useContext(UserContext) ;
-    if(!data) return null;
-    return data.user;
+    if(!data)  {
+        throw new Error("Loi");
+    }
+    return data;
 }
 
 export default useUser;

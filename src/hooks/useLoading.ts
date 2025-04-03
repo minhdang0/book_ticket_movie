@@ -1,10 +1,13 @@
 import { useContext } from "react";
-import { UserContext } from "../contexts/UserContext";
+import { LoadingContext } from "../contexts/LoadingContext";
 
 function useLoading() {
-    const data = useContext(UserContext) ;
-    if(!data) return null;
-    return data.loading;
+    const context = useContext(LoadingContext);
+    
+    if (!context) {
+        throw new Error("error");
+    }
+    return context; 
 }
 
 export default useLoading;
