@@ -50,23 +50,12 @@ const Register: React.FC = () => {
       const response = await authService.register(requestData);
 
       if (response.status === 'error') {
-        if (response.errors?.email) {
-          setError("email", {
+        if (response.message) {
+          setError("password_confirmation", {
             type: "manual",
-            message: response.errors.email,
+            message: response.message,
           });
         }
-
-        if (response.errors?.password) {
-          setError("password", {
-            type: "manual",
-            message: response.errors.password,
-          });
-        }
-        if (response.errors?.general) {
-          console.log(response.errors.general);
-        }
-
         throw response;
       }
 
