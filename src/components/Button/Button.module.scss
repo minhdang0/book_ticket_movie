@@ -1,5 +1,5 @@
 .btn {
-    min-height: 110px;
+    min-width: 110px;
     min-height: 30px;
     border: none;
     color: var(--text-color);
@@ -24,4 +24,7 @@
 
 .primary {
     background-color: rgba(11, 158, 237, 0.956);
+}
+.small {
+    padding: 8px 12px;
 }

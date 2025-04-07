@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Slider from './components/Slider/Slider';
 import { Container, Row } from 'reactstrap';
 import { moviesData } from '../../utils/data/movieData';
@@ -12,8 +12,11 @@ type Props = {
 }
 
 const Home: React.FC<Props> = () => {
-  const { loading } = useLoading();
+  const { loading, setLoading } = useLoading();
 
+  useEffect(() => {
+    setLoading(false)
+  }, [loading])
   if (loading) return <Loading />;
   return (
     <>

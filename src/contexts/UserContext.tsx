@@ -29,7 +29,7 @@ export const UserProvider: React.FC<Props> = ({ children }) => {
 
             try {
                 const data = await authService.currentUser();
-                setUser(data.user);
+                setUser(data);
             } catch (error) {
                 console.error("Error fetching user:", error);
             }

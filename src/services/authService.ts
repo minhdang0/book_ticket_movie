@@ -2,21 +2,26 @@ import * as httpRequest from '../utils/api/httpRequests';
 
 export const currentUser = async ()=> {
     const response = await httpRequest.get('/auth/me');
-    return response;
+    return response.data;
 };
 
 export const getUser = async (id:string) => {
     const response = await httpRequest.get(`/users/${id}`);
-    return response
+    return response.data;
 }
 
 export const login = async (data:object) => {
-    const response = await httpRequest.post('/auth/login', data);
-    return response; 
+    try {
+        const response = await httpRequest.post('/auth/login', data);
+        return response.data; 
+    } catch (error) {
+        return error
+    }
 };
 
 export const register = async (data: object) => {
     const response = await httpRequest.post('/auth/register', data);
+    console.log(response)
     return response;
 };
 
@@ -27,7 +32,7 @@ export const checkEmail  = async (email: string, exclude_id?: string) => {
             exclude_id
         }
     });
-    return response.exists;
+    return response.data.exists;
 }
 
 export const checkPhone = async (phone : string, exclude_id?: string) => {
@@ -37,7 +42,7 @@ export const checkPhone = async (phone : string, exclude_id?: string) => {
             exclude_id
         }
     }) 
-    return response.exists;
+    return response.data.exists;
 }
 
 export const checkUsername = async (username : string, exclude_id?: string) => {
@@ -47,11 +52,11 @@ export const checkUsername = async (username : string, exclude_id?: string) => {
             exclude_id
         }
     })
-    return response.exists;
+    return response.data.exists;
 }
 
 export const updateUser = async (id: string, data:object) => {
-    const response = await httpRequest.patch(`/users/${id}`, data);
+    const response = await httpRequest.put(`/users/${id}_method=PUT`, data);
     return response;
 }
 export default {

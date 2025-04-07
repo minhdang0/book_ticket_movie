@@ -28,8 +28,10 @@ const Marquee: React.FC = () => {
   const { user } = useUser();
 
   useEffect(() => {
+    setLoading(true);
     if (user && typeof user.firstName === 'string') {
       setUserName(user.firstName);
+      setLoading(false)
     }
   }, [user]);
 
@@ -54,7 +56,6 @@ const Marquee: React.FC = () => {
       localStorage.removeItem('token');
       navigate('/');
       setUserName('');
-      setLoading(false)
     } catch (error) {
       console.log(error);
     }

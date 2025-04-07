@@ -23,6 +23,24 @@ export const userSchemaRegister = yup.object({
   }).required();
 
 export const userProfile = yup.object().shape({
+   fileImage: yup
+    .mixed<File>()
+    .test("fileImage", "Ảnh quá lớn", (values) => {
+      if (!values) return true; 
+      
+      const newArr = Object.entries(values).map((value) => {
+          return value[1].size;
+      })
+      return newArr[0] <= 5242880;
+    })
+    .test("fileImage", "Ảnh không hợp lệ", (values) => {
+      if (!values ) return true;
+      const newArr = Object.entries(values).map((value) => {
+        return value[1].type;
+    })
+      return newArr[0].includes("jpg") || newArr[0].includes("jpeg") || newArr[0].includes("jpg")
+    }),
+  
   firstName: yup.string().required("Họ không được để trống"),
   lastName: yup.string().required("Tên không được để trống"),
   age: yup
@@ -31,8 +49,8 @@ export const userProfile = yup.object().shape({
   .integer("Tuổi là số nguyên")
   .min(6, "Tuổi phải lớn hơn hoặc bằng 6"),
   gender: yup
-  .string()
-  .oneOf(["Nam", "Nữ","Khác"], "Giới tính phải là 'Nam', 'Nữ' hoặc 'Khác"),
+  .string(),
+  // .oneOf(["Nam", "Nữ","Khác"], "Giới tính phải là 'Nam', 'Nữ' hoặc 'Khác"),
   email: yup.string().email("Email không hợp lệ").required("Email không được để trống"),
   phone: yup.string().nullable(),
   username: yup.string().required("Username không được để trống"),

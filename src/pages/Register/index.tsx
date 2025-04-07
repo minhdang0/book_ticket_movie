@@ -45,21 +45,19 @@ const Register: React.FC = () => {
       password: data.password,
       password_confirmation: data.password_confirmation
     }
-
+    console.log(requestData)
     try {
       const response = await authService.register(requestData);
 
-      if (response.status === 'error') {
-        if (response.message) {
+      if (response.status >= 400) {
+        if (response.response.data.message) {
           setError("password_confirmation", {
             type: "manual",
-            message: response.message,
+            message: response.response.data.message
           });
         }
-        throw response;
       }
-
-      httpRequests.setToken(response.access_token);
+      httpRequests.setToken(response.data.access_token);
       navigate('/login');
     } catch (error) {
       console.log(error)

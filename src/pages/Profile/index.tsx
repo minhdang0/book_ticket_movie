@@ -10,6 +10,19 @@ import Loading from "../../components/Loading/Loading";
 import useDebounce from "../../hooks/useDebounce";
 import { IUser } from "../../utils/interfaces/user";
 
+type FormValues = {
+    firstName: string;
+    lastName: string;
+    age?: number;
+    gender?: string;
+    phone?: string | null;
+    birthDate?: Date;
+    email: string;
+    username: string;
+    image?: string;
+    fileImage?: File | undefined;
+};
+
 const Profile: React.FC = () => {
     const { user } = useUser();
     const [userInfo, setUserInfo] = useState<IUser | null>(null);
@@ -17,7 +30,7 @@ const Profile: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [editing, setEditing] = useState<boolean>(false);
     const [preview, setPreview] = useState<string | null>(null);
-    const [fileImage, setFileImage] = useState<object | null>(null);
+    const [fileImage, setFileImage] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
 
     const {
@@ -29,7 +42,10 @@ const Profile: React.FC = () => {
         trigger,
         formState: { errors }
     } = useForm({
-        resolver: yupResolver(userProfile)
+        resolver: yupResolver(userProfile),
+        defaultValues: {
+            ...user,
+        }
     });
 
     useEffect(() => {
@@ -41,6 +57,7 @@ const Profile: React.FC = () => {
             }
             try {
                 const response = await authService.getUser(user.id);
+                console.log(response)
                 setUserInfo(response);
             } catch (err) {
                 setErrorMessage("Không tìm thấy người dùng.");
@@ -49,9 +66,9 @@ const Profile: React.FC = () => {
             }
         };
 
-        if (!loading) fetchUser()
+        if (loading === false) fetchUser()
 
-    }, [user]);
+    }, [user, loading]);
 
     useEffect(() => {
         return () => {
@@ -110,32 +127,26 @@ const Profile: React.FC = () => {
         setEditing(!editing);
     };
 
-    const onSubmit: SubmitHandler<{
-        firstName: string;
-        lastName: string;
-        age?: number;
-        gender?: string;
-        phone?: string | null;
-        birthDate?: Date;
-        email: string;
-        username: string;
-    }> = async (data) => {
+    const onSubmit: SubmitHandler<FormValues> = async (data) => {
+
+        setLoading(true);
         if (!user?.id) {
             setErrorMessage("Không có ID người dùng.");
             return;
         }
 
-        setLoading(true);
-
         const formData = new FormData();
+
         Object.entries(data).forEach(([key, value]) => {
+            console.log(key, value)
             if (value !== null && value !== undefined && value !== "") {
-                formData.append(key, String(value));  // Ensure the value is a string
+                formData.append(key, String(value));
             }
         });
 
         if (fileImage instanceof File) {
-            formData.append("image", fileImage);
+            if (data.image) formData.set("image", fileImage);
+            else formData.append("image", fileImage);
         }
 
         if (data.birthDate) {
@@ -145,11 +156,15 @@ const Profile: React.FC = () => {
         try {
             const res = await authService.updateUser(user.id, formData);
             if (res.status >= 400) throw res;
-            setEditing(false);
+
+            const dataUser = await authService.getUser(user.id);
+            setUserInfo(dataUser);
+
         } catch (error) {
             console.log(error);
         } finally {
             setLoading(false);
+            setEditing(false);
         }
     };
 
@@ -157,70 +172,76 @@ const Profile: React.FC = () => {
     if (errorMessage) return <p>{errorMessage}</p>;
     if (!userInfo) return <p>Không có dữ liệu người dùng.</p>;
 
+    console.log(fileImage);
     return (
         <>
             <div className="profile-container">
                 {editing ? (
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form onSubmit={handleSubmit(onSubmit)} >
                         <div>
                             <label>Thay đổi ảnh của bạn</label>
-                            <input type="file" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            <input type="file" {...register("fileImage")} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 const target = e.target as HTMLInputElement
                                 const file = target.files?.[0];
-                                console.log(file)
                                 if (file) {
                                     setFileImage(file);
                                     setPreview(URL.createObjectURL(file));
                                     setFileName(file.name);
                                 }
                             }} />
-                            {preview && <img src={preview} alt={fileName || "Chua co anh"} />}
+                            {preview ?
+                                <img src={preview} alt={fileName || "Chua co anh"} /> :
+                                userInfo.image ?
+                                    <img src={userInfo?.image} alt={`avatar cua ${userInfo.firstName}`} /> :
+                                    <p>"Chưa cập nhật ảnh"</p>}
+                            {errors.fileImage && <p>{errors.fileImage.message}</p>}
+
                         </div>
                         <div>
                             <label>Họ:</label>
-                            <input {...register("firstName")} defaultValue={userInfo.firstName} />
+                            <input {...register("firstName")} />
                             {errors.firstName && <p>{errors.firstName.message}</p>}
                         </div>
 
                         <div>
                             <label>Tên:</label>
-                            <input {...register("lastName")} defaultValue={userInfo.lastName} />
+                            <input {...register("lastName")} />
                             {errors.lastName && <p>{errors.lastName.message}</p>}
                         </div>
 
                         <div>
                             <label>Tuổi:</label>
-                            <input type="number" {...register("age")} defaultValue={userInfo.age || ''} min={1} />
+                            <input type="number" {...register("age")} min={1} />
                             {errors.age && <p>{errors.age.message}</p>}
                         </div>
 
                         <div>
                             <label>Giới tính:</label>
-                            <input type="text" {...register("gender")} defaultValue={userInfo.gender || ''} />
+                            <input type="text" {...register("gender")} />
                             {errors.gender && <p>{errors.gender.message}</p>}
                         </div>
 
                         <div>
                             <label>Email:</label>
-                            <input {...register("email")} defaultValue={userInfo.email} />
+                            <input {...register("email")} />
                             {errors.email && <p>{errors.email.message}</p>}
                         </div>
 
                         <div>
                             <label>Số điện thoại:</label>
-                            <input {...register("phone")} defaultValue={userInfo.phone} />
+                            <input {...register("phone")} />
                             {errors.phone && <p>{errors.phone.message}</p>}
                         </div>
 
                         <div>
                             <label>Tên đăng nhập:</label>
-                            <input {...register("username")} defaultValue={userInfo.username} />
+                            <input {...register("username")} />
                             {errors.username && <p>{errors.username.message}</p>}
                         </div>
 
                         <div>
                             <label>Ngày sinh:</label>
-                            <input type="date" {...register("birthDate")} defaultValue={userInfo.birthDate || ''} />
+                            <input type="date" {...register("birthDate")} />
                             {errors.birthDate && <p>{errors.birthDate.message}</p>}
                         </div>
 

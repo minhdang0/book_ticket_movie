@@ -11,9 +11,15 @@ const httpRequest = axios.create({
 });
 
 const send = async ({ method, url, data, config }:  IRequestProps): Promise<any>  => {
-    const response: AxiosResponse   = await httpRequest.request   ({
-        method,
-        url,
+    const isPutOrPatch = ["put", "patch"].includes(method.toLowerCase());
+    const effectiveMethod = isPutOrPatch ? "post" : method;
+    const effectivePath = isPutOrPatch
+        ? `${url}${url.includes("?") ? "&" : "?"}_method=${method}`
+        : url;
+
+    const response: AxiosResponse   = await httpRequest.request ({
+        method:effectiveMethod,
+        url:effectivePath,
         data,
         ...config
     });

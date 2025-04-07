@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Link, useNavigate } from 'react-router-dom';
@@ -22,15 +22,24 @@ type Inputs = {
 };
 
 const Login: React.FC = () => {
-  const { user, setUser } = useUser();
+  const { setUser } = useUser();
   const { loading, setLoading } = useLoading();
+  const [valueEmail, setValueEmail] = useState('');
+  const [valuePassword, setValuePassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { register, handleSubmit, setError, formState: { errors } } = useForm({
+  const { register, handleSubmit, setError, watch, formState: { errors } } = useForm({
     resolver: yupResolver(userSchemaLogin),
   });
 
   const navigate = useNavigate();
   const query = useQuery();
+
+
+
+  useEffect(() => {
+    setValueEmail(watch('email'));
+    setValuePassword(watch('password'));
+  }, [watch('email'), watch('password')]);
 
   const onSubmit = async (data: Inputs) => {
     setLoading(true)
@@ -40,20 +49,21 @@ const Login: React.FC = () => {
     }
     try {
       const response = await authService.login(requestData);
-      if (response.status === 'error') {
-        if (response.message) {
+      console.log(response);
+      if (response.status >= 400) {
+        if (response.response.data.message) {
           setError("password", {
             type: "manual",
-            message: response.message,
+            message: response.response.data.message,
           });
         }
-        setErrorMessage(response.message);
+        setErrorMessage(response.response.data.message);
         throw response;
+
       }
       httpRequests.setToken(response.access_token);
       const res = await authService.currentUser();
-      setUser(res.user);
-      console.log(user);
+      setUser(res);
 
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
@@ -65,26 +75,37 @@ const Login: React.FC = () => {
 
   };
 
-
   return (
     <>
       {errorMessage && <ShowNotification title="Lỗi đăng nhập" message={errorMessage} type="error" />}
       <form className={clsx(styles.form__login)} onSubmit={handleSubmit(onSubmit)}>
         {/* Email */}
-        <div className='mb-3'>
-          <label htmlFor='email'><FontAwesomeIcon icon={faEnvelope} />Email</label>
-          <input type='email' id='email' {...register("email")} />
+        <div className='mb-3' >
+          <label htmlFor='email' className={clsx({
+            [styles.label__email]: valueEmail.length > 0,
+            [styles.label__formal]: valueEmail.length === 0
+          })}>
+            <FontAwesomeIcon icon={faEnvelope} />Email</label>
+          <input type='email' className={styles.input__content} id='email' {...register("email")} />
           {errors.email && <p>{errors.email.message}</p>}
         </div>
         {/* Password */}
         <div className='mb-3'>
-          <label htmlFor='password'><FontAwesomeIcon icon={faLock} />Password</label>
-          <input type='password' id='password' {...register("password")} />
+          <label htmlFor='password' className={clsx({
+            [styles.label__password]: valuePassword.length > 0,
+            [styles.label__formal]: valuePassword.length === 0
+          })}>
+            <FontAwesomeIcon icon={faLock} />Password</label>
+          <input type='password' className={styles.input__content} id='password' {...register("password")} />
           {errors.password && <p>{errors.password.message}</p>}
         </div>
 
         {/* Submit */}
-        <Button primary>{loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Đăng nhập'}</Button>
+        <div className={styles.btn__container}>
+          <Button className={styles.btn__login} primary>
+            {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Đăng nhập'}
+          </Button>
+        </div>
         <div className={clsx('mt-3', 'mb-3')}>
           <Link to='/'>Quay về trang chủ</Link>
           <Link to='/register'>Chuyển đến trang đăng ký</Link>
