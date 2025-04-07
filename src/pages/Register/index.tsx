@@ -50,12 +50,15 @@ const Register: React.FC = () => {
       const response = await authService.register(requestData);
 
       if (response.status >= 400) {
-        if (response.response.data.message) {
-          setError("password_confirmation", {
-            type: "manual",
-            message: response.response.data.message
-          });
-        }
+        const messages = response.response.data.message;
+        ['email', 'password', 'password_confirmation'].forEach((field) => {
+          if (messages?.[field]) {
+            setError(field as keyof Inputs, {
+              type: 'manual',
+              message: messages[field],
+            });
+          }
+        });
       }
       httpRequests.setToken(response.data.access_token);
       navigate('/login');
