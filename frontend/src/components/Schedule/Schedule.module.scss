@@ -1,0 +1,35 @@
+.showtime__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.showtime__item {
+    width: 110px;
+    button {
+        width: 100%;
+        border: none;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        font-size: 14px;
+        user-select: none;
+        cursor: pointer;
+        color: #333;
+        background-color: #e5e5e5;
+        font-family: Oswald !important;
+        font-weight: 400;
+        &:hover {
+            background-color: #505050f0;
+            color: #fff;
+        }
+    }
+
+    p {
+        font-size: 14px;
+        font-family: Oswald !important;
+        font-weight: 400;
+        text-align: center;
+    }
+}

@@ -1,0 +1,30 @@
+.btn__tab {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    margin-right: 10px;
+    font-size: 18px;
+    padding: 10px;
+    min-height: 50px;
+    width: max-content;
+    min-width: 110px;
+    font-weight: 600;
+    font-family: Oswald !important;
+    span {
+        font-size: 38px;
+    }
+}
+
+.active__btn {
+    color: #b11d09;
+    &::after {
+        content: "";
+        width: max-content;
+        height: 2px;
+        background-color: #b11d09;
+    }
+}
+
+.content__tab {
+    width: 100%;
+}

@@ -1,0 +1,38 @@
+.movie__info {
+    display: flex;
+    padding-top: 50px;
+    gap: 20px;
+    img {
+        width: 300px;
+        height: 500px;
+        border-radius: 10px;
+    }
+    margin-bottom: 24px;
+}
+.movie__content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    h3 {
+        font-weight: 600;
+        font-family: Oswald, sans-serif !important ;
+        color: #ba0202e7;
+    }
+    p {
+        font-family: SourceSansPro;
+        font-size: 24px;
+    }
+}
+.schedule__movie {
+    margin-bottom: 150px;
+}
+.detail__showtime {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+.btn__accept {
+    background-color: #bb0000;
+    padding: 4px 32px;
+}

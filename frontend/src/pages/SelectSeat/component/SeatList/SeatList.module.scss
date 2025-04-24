@@ -1,0 +1,113 @@
+.cinema {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: "Segoe UI", sans-serif;
+    text-align: center;
+    background-color: #f9f9f9;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+
+    .seat {
+        width: 24px;
+        height: 24px;
+        display: inline-block;
+        margin-right: 5px;
+        border-radius: 6px;
+    }
+
+    .available {
+        background-color: #c2c2c2;
+    }
+    .selected {
+        background-color: #003f87;
+    }
+    .reserved {
+        background-color: #33ccff;
+    }
+    .sold {
+        background-color: #ff3333;
+    }
+}
+
+.screen {
+    width: 100%;
+    background: #ddd;
+    padding: 10px;
+    margin: 0 auto 30px;
+    border-radius: 20px;
+    font-weight: bold;
+    color: #888;
+    box-shadow: inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.seats {
+    display: grid;
+    grid-template-columns: repeat(18, 1fr);
+    gap: 8px;
+    justify-items: center;
+    margin-bottom: 30px;
+}
+
+.seat {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    background-color: #c2c2c2;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.selected {
+        background-color: #003f87;
+        color: white;
+    }
+
+    &.reserved {
+        background-color: #33ccff;
+        color: white;
+    }
+
+    &.sold {
+        background-color: #ff3333;
+        color: white;
+        cursor: not-allowed;
+    }
+
+    &:disabled {
+        opacity: 0.7;
+    }
+
+    &:hover:not(:disabled) {
+        transform: scale(1.1);
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    }
+
+    &.couple {
+        width: 76px;
+        background-color: #ff3399;
+    }
+}
+
+.summary {
+    font-size: 16px;
+    line-height: 2;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+
+    div {
+        flex: 1;
+        min-width: 200px;
+    }
+}
