@@ -8,13 +8,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 import * as authService from '../../services/authService';
-import * as httpRequests from '../../utils/api/httpRequests';
+// import * as httpRequests from '../../utils/api/httpRequests';
 import styles from './Login.module.scss';
 import Button from '../../components/Button';
 import { userSchemaLogin } from '../../schema/schema';
 import config from '../../config';
 import useQuery from '../../hooks/useQuery';
 import useLoading from '../../hooks/useLoading';
+import { useDispatch } from 'react-redux';
+import { getCurrentUser } from '../../features/auth/authAsync';
+import { AppDispatch } from '../../store';
+import useCurrentUser from '../../hooks/useCurrentUser';
 
 type Inputs = {
   email: string;
@@ -26,8 +30,9 @@ const Login: React.FC = () => {
   const { loading, setLoading } = useLoading();
   const navigate = useNavigate();
   const query = useQuery();
-
+  const dispatch = useDispatch<AppDispatch>();
   const [focus, setFocus] = useState({ email: false, password: false });
+  const user = useCurrentUser();
 
   const {
     register,
@@ -71,8 +76,10 @@ const Login: React.FC = () => {
         message: 'Đăng nhập thành công',
         duration: 2,
       });
-
-      httpRequests.setToken(response.access_token);
+      dispatch(getCurrentUser());
+      localStorage.setItem('token', response.access_token);
+      localStorage.setItem('refresh_token', response.refresh_token)
+      // httpRequests.setToken(response.access_token);
 
       navigate(query.get("continue") || config.routes.home);
     } catch (error) {
@@ -82,6 +89,10 @@ const Login: React.FC = () => {
     }
   };
 
+  if (user) {
+    navigate(query.get("continue") || config.routes.home);
+    return;
+  }
   return (
     <form className={clsx(styles.form__login)} onSubmit={handleSubmit(onSubmit)}>
       {/* Email */}

@@ -4,7 +4,10 @@ export const currentUser = async () => {
     const response = await httpRequest.get('/auth/me');
     return response.data;
 };
-
+export const getAllUser = async () => {
+    const response = await httpRequest.get('/users');
+    return response.data;
+}
 export const getUser = async (id: string) => {
     const response = await httpRequest.get(`/users/${id}`);
     return response.data;
