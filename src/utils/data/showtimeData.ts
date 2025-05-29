@@ -10,7 +10,7 @@ export const showtimeData: ShowtimeDay[] = [
                 { time: "08:00", availableSeats: 110 },
                 { time: "10:00", availableSeats: 105 },
                 { time: "13:00", availableSeats: 95 },
-            ],
+            ]
         },
         movieId: 1,
         cinemaId: 1,

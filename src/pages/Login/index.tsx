@@ -76,6 +76,7 @@ const Login: React.FC = () => {
         message: 'Đăng nhập thành công',
         duration: 2,
       });
+      console.log(response);
       dispatch(getCurrentUser());
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token)

@@ -5,15 +5,19 @@ import { Container, Row } from 'reactstrap';
 import { Table, notification } from 'antd';
 
 import styles from './MovieDetail.module.scss';
-import { moviesData } from '../../utils/data/movieData';
-import { showtimeData } from '../../utils/data/showtimeData';
 import { IMovie } from '../../utils/interfaces/movie';
 import { IUser } from '../../utils/interfaces/user';
 
 import Schedule from '../../components/Schedule';
 import Modal from '../../components/Modal';
 import Button from '../../components/Button';
-import { useCinema } from '../../contexts/CinemaContext';
+import { useDispatch } from 'react-redux';
+import { AppDispatch, RootState } from '../../store';
+import useMovie from '../../hooks/useMovie';
+import { getMovieById } from '../../features/movie/movieAsync';
+import { getShowtimeByCinema } from '../../features/showtime/showtimeAsync';
+import useCinema from '../../hooks/useCinema';
+import { IShowtime } from '../../utils/interfaces/showtime';
 
 type stateValue = {
     auth: {
@@ -28,16 +32,26 @@ const MovieDetail: React.FC = () => {
     const [selectedDay, setSelectedDay] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
-
+    const dispatch = useDispatch<AppDispatch>();
+    const { currentMovie } = useMovie();
     const { selectedCinema } = useCinema();
     const user = useSelector((state: stateValue) => state.auth.currentUser);
+    const { showtime } = useSelector((state: RootState) => state.showtime)
+    const filterShowtime = showtime.filter((show: IShowtime) => show.movie_id == param.id)
 
     useEffect(() => {
-        const id = Number(param.id);
-        const foundMovie = moviesData.find((item) => item.id === id);
-        setMovieInfo(foundMovie);
-    }, [param]);
+        const id = String(param.id);
+        dispatch(getMovieById(id));
+        dispatch(getShowtimeByCinema(selectedCinema))
+    }, [dispatch, param]);
 
+    useEffect(() => {
+        if (currentMovie) {
+            setMovieInfo(currentMovie);
+        }
+    }, [currentMovie]);
+
+    console.log(movieInfo)
     const handleSelectShowtime = (day: string, time: string) => {
         if (!selectedCinema) {
             notification.warning({
@@ -68,14 +82,11 @@ const MovieDetail: React.FC = () => {
             });
         }
         localStorage.setItem('bookingInfo', JSON.stringify({ time: selectedTime }));
-        navigate(`/select-seat/${movieInfo?.id}`, {
+        navigate(`/select-seat/${movieInfo?._id}`, {
             state: { selectedTime },
         });
     };
 
-    const filteredShowtime = showtimeData.filter(
-        (show) => show.cinemaId === selectedCinema && show.movieId === movieInfo?.id
-    );
 
     const dataSource = [
         {
@@ -114,7 +125,7 @@ const MovieDetail: React.FC = () => {
                     <div className={styles.movie__content}>
                         <h3>{movieInfo?.name}</h3>
                         <p>{movieInfo?.description}</p>
-                        <span><strong>Thể loại:</strong> {movieInfo?.category.join(', ')}</span>
+                        <span><strong>Thể loại:</strong> {movieInfo?.categories.join(', ')}</span>
                         <span><strong>Đạo diễn:</strong> {movieInfo?.director}</span>
                         <span><strong>Độ tuổi cho phép:</strong> {movieInfo?.ageAllowed}</span>
                         <span><strong>Thời lượng:</strong> {movieInfo?.duration} phút</span>
@@ -126,7 +137,7 @@ const MovieDetail: React.FC = () => {
             <Row>
                 <div className={styles.schedule__movie}>
                     <div className={styles.schedule__content}>
-                        <Schedule showtimeData={filteredShowtime} onSelectShowtime={handleSelectShowtime} />
+                        <Schedule showtimeData={filterShowtime} onSelectShowtime={handleSelectShowtime} />
                     </div>
                 </div>
             </Row>

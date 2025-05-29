@@ -1,7 +1,7 @@
 
 export interface IRoom {
-    id: number;
+    _id: string;
     name: string;
     seatCount: number;
-    cinemaID: number
+    cinemaID: string
 }

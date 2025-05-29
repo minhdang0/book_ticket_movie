@@ -49,7 +49,7 @@ const Marquee: React.FC = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch('https://api01.f8team.dev/api/auth/logout', {
+      const res = await fetch('http://localhost:4000/api/v1/auth/logout', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -81,7 +81,7 @@ const Marquee: React.FC = () => {
   }, [index]);
 
   const handleProfileClick = () => {
-    navigate(`/p/${user?.id}`);
+    navigate(`/p/${user?._id}`);
   };
 
   return (

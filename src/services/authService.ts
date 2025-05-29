@@ -5,11 +5,11 @@ export const currentUser = async () => {
     return response.data;
 };
 export const getAllUser = async () => {
-    const response = await httpRequest.get('/users');
+    const response = await httpRequest.get('/customers');
     return response.data;
 }
 export const getUser = async (id: string) => {
-    const response = await httpRequest.get(`/users/${id}`);
+    const response = await httpRequest.get(`/customers/${id}`);
     return response.data;
 }
 
@@ -64,5 +64,6 @@ export const updateUser = async (id: string, data: object) => {
 export default {
     currentUser,
     login,
-    register
+    register,
+    getAllUser
 };

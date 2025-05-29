@@ -1,70 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './SeatList.module.scss';
+import { ISeat } from '../../../../utils/interfaces/seat';
+import { seatData } from '../../../../utils/data/seatData';
+import { seatTypeData } from '../../../../utils/data/seatTypeData';
 
-type SeatStatus = 'available' | 'selected' | 'sold' | 'reserved';
-
-interface Seat {
-    id: string;
-    status: SeatStatus;
-    isCouple?: boolean;
-}
 
 const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-const seatsPerRow = 18;
 
 type Props = {
     selectedSeats: string[];
     setSelectedSeats: React.Dispatch<React.SetStateAction<string[]>>;
+    roomId: number; 
 };
 
-const SeatList: React.FC<Props> = ({ selectedSeats, setSelectedSeats }) => {
-    const generateSeats = (): Seat[] => {
-        const seats: Seat[] = [];
-
-        rows.forEach((row) => {
-            const isCoupleRow = row === 'J';
-            const totalSeats = isCoupleRow ? 10 : seatsPerRow;
-
-            for (let i = 1; i <= totalSeats; i++) {
-                seats.push({
-                    id: `${row}${i}`,
-                    status: 'available',
-                    isCouple: isCoupleRow,
-                });
-            }
-        });
-
-        return seats;
-    };
-
-    const [seats, setSeats] = useState<Seat[]>(generateSeats);
+const SeatList: React.FC<Props> = ({ selectedSeats, setSelectedSeats, roomId }) => {
+    const [seats, setSeats] = useState<ISeat[]>([]);
     const [countdown, setCountdown] = useState<number>(600);
 
-    const toggleSeat = (id: string) => {
-        const seatIndex = seats.findIndex(seat => seat.id === id);
+    useEffect(() => {
+        const filteredSeats = seatData.filter(seat => seat.roomId === roomId);
+        setSeats(filteredSeats);
+    }, [roomId]);
+
+    const toggleSeat = (seatName: string) => {
+        const seatIndex = seats.findIndex(seat => seat.name === seatName);
         const selectedSeat = seats[seatIndex];
 
-        if (!selectedSeat || selectedSeat.status === 'sold' || selectedSeat.status === 'reserved') return;
+        if (!selectedSeat || selectedSeat.isBooked) return;
 
-        let updatedSeats = [...seats];
         let updatedSelectedSeats = [...selectedSeats];
-
-        if (selectedSeat.status === 'available') {
-            updatedSeats[seatIndex].status = 'selected';
-            updatedSelectedSeats.push(selectedSeat.id);
-        } else if (selectedSeat.status === 'selected') {
-            updatedSeats[seatIndex].status = 'available';
-            updatedSelectedSeats = updatedSelectedSeats.filter(id => id !== selectedSeat.id);
+        if (selectedSeats.includes(seatName)) {
+            updatedSelectedSeats = updatedSelectedSeats.filter(name => name !== seatName);
+        } else {
+            updatedSelectedSeats.push(seatName);
         }
 
-        setSeats(updatedSeats);
         setSelectedSeats(updatedSelectedSeats);
     };
 
-    const totalPrice = selectedSeats.reduce((sum, seatId) => {
-        const seat = seats.find(s => s.id === seatId);
-        if (!seat) return sum;
-        return sum + (seat.isCouple ? 160000 : 75000);
+    const getPrice = (typeId: number) => {
+        const seatType = seatTypeData.find(t => t.id === typeId);
+        return seatType?.price || 0;
+    };
+
+    const totalPrice = selectedSeats.reduce((sum, name) => {
+        const seat = seats.find(s => s.name === name);
+        return seat ? sum + getPrice(seat.typeId) : sum;
     }, 0);
 
     useEffect(() => {
@@ -82,16 +63,14 @@ const SeatList: React.FC<Props> = ({ selectedSeats, setSelectedSeats }) => {
 
     const groupedSeats = rows.map(row => ({
         row,
-        seats: seats.filter(seat => seat.id.startsWith(row)),
+        seats: seats.filter(seat => seat.name.startsWith(row)),
     }));
 
     return (
         <div className={styles.cinema}>
             <div className={styles.legend}>
                 <span className={`${styles.seat} ${styles.available}`} /> Ghế trống
-                <span className={`${styles.seat} ${styles.couple}`} /> Ghế đôi
                 <span className={`${styles.seat} ${styles.selected}`} /> Ghế đang chọn
-                <span className={`${styles.seat} ${styles.reserved}`} /> Ghế đang giữ
                 <span className={`${styles.seat} ${styles.sold}`} /> Ghế đã bán
             </div>
 
@@ -102,16 +81,20 @@ const SeatList: React.FC<Props> = ({ selectedSeats, setSelectedSeats }) => {
                     key={group.row}
                     className={`${styles.seats} ${group.row === 'J' ? styles.coupleSeats : styles.normalSeats}`}
                 >
-                    {group.seats.map(seat => (
-                        <button
-                            key={seat.id}
-                            className={`${styles.seat} ${styles[seat.status]} ${seat.isCouple ? styles.couple : ''}`}
-                            onClick={() => toggleSeat(seat.id)}
-                            disabled={seat.status === 'sold' || seat.status === 'reserved'}
-                        >
-                            {seat.id}
-                        </button>
-                    ))}
+                    {group.seats.map(seat => {
+                        const isSelected = selectedSeats.includes(seat.name);
+                        const seatType = seatTypeData.find(t => t.id === seat.typeId);
+                        return (
+                            <button
+                                key={seat.name}
+                                className={`${styles.seat} ${seat.isBooked ? styles.sold : isSelected ? styles.selected : styles.available} ${seatType?.name.includes("Đôi") ? styles.couple : ''}`}
+                                onClick={() => toggleSeat(seat.name)}
+                                disabled={seat.isBooked}
+                            >
+                                {seat.name}
+                            </button>
+                        );
+                    })}
                 </div>
             ))}
 

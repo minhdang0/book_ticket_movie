@@ -2,24 +2,33 @@ import React from 'react';
 import Tabs from '../Tabs/Tabs';
 import Tab from '../Tabs/Tab';
 import styles from './Schedule.module.scss';
-
-import { ShowtimeDay } from '../../utils/interfaces/showtime';
+import { IShowtime } from '../../utils/interfaces/showtime';
+import { formatDate } from '../../utils/format/formatDate';
 
 type Props = {
-    showtimeData: ShowtimeDay[];
+    showtimeData: IShowtime[];
     onSelectShowtime: (day: string, time: string) => void;
 };
 
 const Schedule: React.FC<Props> = ({ showtimeData, onSelectShowtime }) => {
+    const groupedShowtime = showtimeData.reduce((acc: Record<string, IShowtime[]>, show) => {
+        const date = new Date(show.date).toISOString().split('T')[0]; // YYYY-MM-DD
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(show);
+        return acc;
+    }, {});
+
+    const dates = Object.keys(groupedShowtime).sort();
+
     return (
         <Tabs defaultIndex={0}>
-            {showtimeData.map((day, index) => (
-                <Tab key={index} title={day.showDate.date}>
+            {dates.map((date, index) => (
+                <Tab key={index} title={formatDate(date)}>
                     <div className={styles.showtime__list}>
-                        {day.showDate.showtime.map((show, idx) => (
+                        {groupedShowtime[date].map((show, idx) => (
                             <div key={idx} className={styles.showtime__item}>
                                 <button
-                                    onClick={() => onSelectShowtime(day.showDate.date, show.time)}
+                                    onClick={() => onSelectShowtime(date, show.time)}
                                     disabled={show.availableSeats <= 0}
                                 >
                                     {show.time}
@@ -29,10 +38,8 @@ const Schedule: React.FC<Props> = ({ showtimeData, onSelectShowtime }) => {
                         ))}
                     </div>
                 </Tab>
-
-            ))
-            }
-        </Tabs >
+            ))}
+        </Tabs>
     );
 };
 

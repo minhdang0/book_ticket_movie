@@ -1,11 +1,11 @@
 export interface IMovie {
-    id: number;
+    _id: string;
     name: string;
     image: string;
     description?: string;
     duration: number;
     releaseDate?: Date;
-    category: string[];
+    categories: string[];
     director?: string;
     review?: string;
     ageAllowed?: number;

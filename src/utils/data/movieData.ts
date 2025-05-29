@@ -15,7 +15,8 @@ export const moviesData: IMovie[] = [
     releaseDate: new Date("2025-04-27"),
     category: ["Kinh dị"],
     director: "Khổng Minh",
-    ageAllowed: 16
+    ageAllowed: 16,
+    room_id: 1,
   },
   {
     id: 2,
@@ -26,7 +27,8 @@ export const moviesData: IMovie[] = [
     releaseDate: new Date("2025-04-28"),
     category: ["Phiêu lưu", "Âm Nhạc"],
     director: "Khổng Minh",
-    ageAllowed: 16
+    ageAllowed: 16,
+    room_id: 2,
   },
   {
     id: 3,
@@ -37,7 +39,8 @@ export const moviesData: IMovie[] = [
     releaseDate: new Date("2025-04-29"),
     category: ["Kinh dị"],
     director: "Khổng Minh",
-    ageAllowed: 16
+    ageAllowed: 16,
+    room_id: 3,
   },
   {
     id: 4,
@@ -48,7 +51,8 @@ export const moviesData: IMovie[] = [
     releaseDate: new Date("2025-04-30"),
     category: ['Tâm lý', 'Tình cảm'],
     director: "Khổng Minh",
-    ageAllowed: 16
+    ageAllowed: 16,
+    room_id: 4,
   },
   {
     id: 5,
@@ -59,7 +63,8 @@ export const moviesData: IMovie[] = [
     releaseDate: new Date("2025-04-30"),
     category: ['Kinh dị', 'Trinh thám'],
     director: "Khổng Minh",
-    ageAllowed: 16
+    ageAllowed: 16,
+    room_id: 5,
   },
 
 ];

@@ -62,7 +62,7 @@ const Profile: React.FC = () => {
                 return;
             }
             try {
-                const response = await authService.getUser(`${user.id}`);
+                const response = await authService.getUser(`${user._id}`);
                 console.log(response)
                 setUserInfo(response);
             } catch (err) {
@@ -97,7 +97,7 @@ const Profile: React.FC = () => {
             const isValid = await trigger(["email", "username", "phone"]);
 
             if (isValid) {
-                const excludeId = user.id;
+                const excludeId = user._id;
                 const existsEmail = await authService.checkEmail(debounceEmail, `${excludeId}`);
                 const existsPhone = await authService.checkPhone(debouncePhone, `${excludeId}`);
                 const existsUsername = await authService.checkUsername(debounceUsername, `${excludeId}`);
@@ -135,9 +135,9 @@ const Profile: React.FC = () => {
 
 
     const onSubmit: SubmitHandler<FormValues> = async (data) => {
-        console.log(user.id)
+        console.log(user._id)
         setLoading(true);
-        if (!user?.id) {
+        if (!user?._id) {
             setErrorMessage("Không có ID người dùng.");
             return;
         }
@@ -161,10 +161,10 @@ const Profile: React.FC = () => {
         }
 
         try {
-            const res = await authService.updateUser(`${user.id}`, formData);
+            const res = await authService.updateUser(`${user._id}`, formData);
             if (res.status >= 400) throw res;
 
-            const dataUser = await authService.getUser(`${user.id}`);
+            const dataUser = await authService.getUser(`${user._id}`);
             setUserInfo(dataUser);
 
         } catch (error) {

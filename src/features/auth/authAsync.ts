@@ -5,6 +5,7 @@ export const getCurrentUser = createAsyncThunk(
     'auth/getCurrentUser',
     async () => {
         const res = await authService.currentUser();
+        
         return res;
     }
 )

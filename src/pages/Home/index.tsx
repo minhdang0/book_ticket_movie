@@ -1,46 +1,61 @@
 import React, { useEffect } from 'react'
 import Slider from './components/Slider/Slider';
 import { Container, Row } from 'reactstrap';
-import { moviesData } from '../../utils/data/movieData';
 import MovieList from '../../components/ProductList/MovieList';
 import '@ant-design/v5-patch-for-react-19';
-import { showtimeData } from '../../utils/data/showtimeData';
-import { useCinema } from '../../contexts/CinemaContext';
 import { useDispatch } from 'react-redux';
-import { AppDispatch } from '../../store';
-import { getCurrentUser } from '../../features/auth/authAsync';
-import * as authService from '../../services/authService';
+import { AppDispatch, RootState } from '../../store';
+import { getAllMovies, getMovieByCinema } from '../../features/movie/movieAsync';
+import { useSelector } from 'react-redux';
 
 const Home: React.FC = () => {
-  const { selectedCinema } = useCinema();
+  const { selectedCinema } = useSelector((state: RootState) => state.cinema);
+  const { movies, moviesCinema, loading, error } = useSelector((state: RootState) => state.movie);
+  const dispatch = useDispatch<AppDispatch>();
 
-  const filteredMovieIds = showtimeData
-    .filter((showtime) => showtime.cinemaId === selectedCinema)
-    .map((s) => s.movieId);
-
-  const uniqueMovieIds = Array.from(new Set(filteredMovieIds));
-
-  const filteredMovies = selectedCinema
-    ? moviesData.filter((movie) => uniqueMovieIds.includes(movie.id))
-    : moviesData;
-
-  const dispatch = useDispatch<AppDispatch>()
+  // Load all movies on component mount
   useEffect(() => {
-    dispatch(getCurrentUser());
-    authService.getAllUser();
-  })
-  return (
-    <>
-      <Container>
-        <Row >
-          <Slider />
-        </Row>
-        <Row >
-          <MovieList movies={filteredMovies} />
-        </Row>
-      </Container>
-    </>
-  )
-}
+    dispatch(getAllMovies());
+  }, [dispatch]);
 
-export default Home
+  // Load movies by cinema when selectedCinema changes
+  useEffect(() => {
+    if (selectedCinema) {
+      dispatch(getMovieByCinema(selectedCinema));
+    }
+  }, [selectedCinema, dispatch]);
+
+  // Determine which movies to display
+  const displayMovies = selectedCinema && moviesCinema?.length > 0
+    ? moviesCinema
+    : movies || [];
+
+  if (loading) {
+    return (
+      <Container>
+        <div className="text-center p-4">Đang tải phim...</div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <div className="alert alert-danger">Lỗi: {error}</div>
+      </Container>
+    );
+  }
+
+  return (
+    <Container>
+      <Row>
+        <Slider />
+      </Row>
+      <Row>
+        <MovieList movies={displayMovies} />
+      </Row>
+    </Container>
+  );
+};
+
+export default Home;

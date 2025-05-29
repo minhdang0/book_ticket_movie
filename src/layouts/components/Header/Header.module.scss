@@ -4,10 +4,30 @@
     background-color: var(--heading-color);
     color: var(--text-color);
 }
-.header__content{
+
+.stickyHeader {
+    position: fixed;
+    width: 100%;
+    padding: 0px calc(100% - 1400px);
+    z-index: 999;
+    background-color: var(--heading-color);
+
+    &.scrolled {
+        width: 100;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        top: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        background-color: var(--heading-color);
+    }
+}
+
+.header__content {
     display: flex;
     justify-content: space-between;
     align-items: first baseline;
+    // position: absolute;
     padding: 24px 24px;
     height: auto;
 }

@@ -1,17 +1,10 @@
-interface Showtime {
-    time: string;
-    availableSeats: number;
-}
 
-interface ShowDate {
-    date: string;
-    showtime: Showtime[];
-}
 
-export interface ShowtimeDay {
-    id: number;
-    showDate: ShowDate;
-    movieId: number;
-    cinemaId: number;
-    roomId: number;
+export interface IShowtime {
+    _id: string;
+    movie_id: string,
+    room_id: string,
+    date: Date,
+    time: string,
+    availableSeats: number
 }

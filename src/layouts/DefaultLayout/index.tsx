@@ -10,7 +10,7 @@ const DefaultLayout: React.FC<Props> = () => {
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={styles.content}>
         <Outlet />
       </main>
       <Footer />

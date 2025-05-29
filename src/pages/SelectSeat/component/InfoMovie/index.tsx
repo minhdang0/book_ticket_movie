@@ -11,9 +11,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import styles from './InfoMovie.module.scss';
 import Button from '../../../../components/Button';
-import { useCinema } from '../../../../contexts/CinemaContext';
 import { roomData } from '../../../../utils/data/roomData';
 import { cinemasData } from '../../../../utils/data/cinemaData';
+import useCinema from '../../../../hooks/useCinema';
 
 type Props = {
     movie: IMovie;
@@ -27,10 +27,13 @@ const InfoMovie: React.FC<Props> = ({ movie, selectedTime, selectedSeats }) => {
         const d = new Date(date);
         return d.toLocaleDateString('vi-VN');
     };
-    const { selectedCinema } = useCinema();
-    const room = roomData.find((item) => item.cinemaID === selectedCinema);
+
+    const selectedCinema = useCinema();
+    console.log(selectedCinema)
+    const room = roomData.find((item) => item.cinemaID === selectedCinema && item.id === movie.room_id);
     const cinema = cinemasData.find((item) => item.id === selectedCinema);
 
+    console.log(room)
     return (
         <div className={styles['info-movie']}>
             <div className={styles['info-movie__top']}>

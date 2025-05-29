@@ -26,7 +26,7 @@ const SelectSeat: React.FC = () => {
         <Container>
             <Row>
                 <Col md={8}>
-                    <SeatList selectedSeats={selectedSeats} setSelectedSeats={setSelectedSeats} />
+                    <SeatList selectedSeats={selectedSeats} setSelectedSeats={setSelectedSeats} roomId={movie.room_id} />
                 </Col>
                 <Col md={4}>
                     <InfoMovie movie={movie} selectedTime={selectedTime} selectedSeats={selectedSeats} />
