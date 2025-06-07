@@ -40,3 +40,14 @@ export const getMovieByCinema = createAsyncThunk(
         }
     }
 );
+export const getMovieBySearch = createAsyncThunk(
+    'cinema/getMoviesBySearch',
+    async (query: string, { rejectWithValue }) => {
+        try {
+            const response = await movieService.getMovieBySearch(query);
+            return response;
+        } catch (error: any) {
+            rejectWithValue(error.message || 'Failed to fetch cinema')
+        }
+    }
+);

@@ -1,0 +1,24 @@
+.breadcrumbWrapper {
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #333;
+    font-weight: 500;
+    font-family: Oswald, sans-serif !important ;
+
+    span {
+        &:not(:last-child)::after {
+            margin: 0 8px;
+            color: #888;
+        }
+
+        &:last-child {
+            font-weight: bold;
+            color: #b12300fb;
+        }
+    }
+}

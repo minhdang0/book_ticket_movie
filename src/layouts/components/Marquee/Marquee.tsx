@@ -61,6 +61,7 @@ const Marquee: React.FC = () => {
       }
 
       localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
       localStorage.removeItem('bookingInfo');
       navigate('/');
       setUserName('');

@@ -7,10 +7,11 @@ import { formatDate } from '../../utils/format/formatDate';
 
 type Props = {
     showtimeData: IShowtime[];
-    onSelectShowtime: (day: string, time: string) => void;
+    onSelectShowtime: (show: IShowtime) => void;
 };
 
 const Schedule: React.FC<Props> = ({ showtimeData, onSelectShowtime }) => {
+    console.log(showtimeData)
     const groupedShowtime = showtimeData.reduce((acc: Record<string, IShowtime[]>, show) => {
         const date = new Date(show.date).toISOString().split('T')[0]; // YYYY-MM-DD
         if (!acc[date]) acc[date] = [];
@@ -28,7 +29,7 @@ const Schedule: React.FC<Props> = ({ showtimeData, onSelectShowtime }) => {
                         {groupedShowtime[date].map((show, idx) => (
                             <div key={idx} className={styles.showtime__item}>
                                 <button
-                                    onClick={() => onSelectShowtime(date, show.time)}
+                                    onClick={() => onSelectShowtime(show)}
                                     disabled={show.availableSeats <= 0}
                                 >
                                     {show.time}

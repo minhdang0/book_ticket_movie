@@ -1,12 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { IMovie } from '../../utils/interfaces/movie';
-import { getAllMovies, getMovieByCinema, getMovieById } from './movieAsync';
+import { getAllMovies, getMovieByCinema, getMovieById, getMovieBySearch } from './movieAsync';
 
 
 
 interface MovieState {
     movies: IMovie[];
     moviesCinema: IMovie[];
+    movie: IMovie | {};
+    movieBySearch: IMovie[];
     currentMovie: string | null;
     loading: boolean;
     error: string | null;
@@ -15,6 +17,8 @@ interface MovieState {
 const initialState: MovieState = {
     movies: [],
     moviesCinema: [],
+    movie: {},
+    movieBySearch: [],
     currentMovie: null,
     loading: false,
     error: null,
@@ -55,7 +59,7 @@ const movieSlice = createSlice({
             })
             .addCase(getMovieById.fulfilled, (state, action) => {
                 state.loading = false;
-                state.currentMovie = action.payload;
+                state.movie = action.payload;
             })
             .addCase(getMovieById.rejected, (state, action) => {
                 state.loading = false;
@@ -74,8 +78,20 @@ const movieSlice = createSlice({
             .addCase(getMovieByCinema.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
-            });
+            })
 
+            .addCase(getMovieBySearch.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(getMovieBySearch.fulfilled, (state, action) => {
+                state.loading = false;
+                state.movieBySearch = action.payload;
+            })
+            .addCase(getMovieBySearch.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            });
     },
 });
 

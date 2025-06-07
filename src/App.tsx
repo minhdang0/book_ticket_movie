@@ -7,6 +7,8 @@ import NoLayout from './layouts/NoLayout/NoLayout';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import { Fragment } from 'react/jsx-runtime';
 import UserProvider from './components/UserProvider';
+import SeatCleanHandle from './components/SeatCleanHandle/index';
+import BeforeUnloadHandle from './components/BeforeUnloadHandle';
 
 
 const App: React.FC = () => {
@@ -14,6 +16,8 @@ const App: React.FC = () => {
     <BrowserRouter>
       <ScrollTop />
       <UserProvider />
+      <SeatCleanHandle />
+      <BeforeUnloadHandle />
       <Routes>
         {routes.map((route) => {
           const Layout = route.layout === undefined ? DefaultLayout : route.layout || NoLayout;

@@ -1,6 +1,6 @@
 import config from '../config';
 import Home from '../pages/Home';
-import ShowTime from '../pages/ShowTime';
+// import ShowTime from '../pages/ShowTime';
 import Movie from '../pages/Movie';
 import Theater from '../pages/Theater';
 import PriceTicket from '../pages/PriceTicket';
@@ -11,6 +11,7 @@ import Profile from '../pages/Profile';
 import NoFooterLayout from '../layouts/NoFooterLayout/NoFooterLayout';
 import SelectSeat from '../pages/SelectSeat';
 import MovieDetail from '../pages/MovieDetail';
+import Payment from '../pages/Payment';
 
 const routes: IRoutes[] = [
     {
@@ -19,14 +20,14 @@ const routes: IRoutes[] = [
         component: Home,
         display: true
     },
+    // {
+    //     name: "Lịch chiếu theo rạp",
+    //     path: config.routes.showtime,
+    //     component: ShowTime,
+    //     display: true
+    // },
     {
-        name: "Lịch chiếu theo rạp",
-        path: config.routes.showtime,
-        component: ShowTime,
-        display: true
-    },
-    {
-        name: "Phim",
+        name: "Phim đang được chiếu",
         path: config.routes.movie,
         component: Movie,
         display: true
@@ -76,6 +77,13 @@ const routes: IRoutes[] = [
         name: 'MovieDetail',
         path: config.routes.movieDetail,
         component: MovieDetail,
+        display: false,
+        protected: false,
+    },
+    {
+        name: 'Payment',
+        path: config.routes.payment,
+        component: Payment,
         display: false,
         protected: false,
     }

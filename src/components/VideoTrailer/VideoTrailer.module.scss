@@ -1,0 +1,226 @@
+// Variables
+$primary-color: #000;
+$white: #fff;
+$overlay-dark: rgba(0, 0, 0, 0.4);
+$overlay-light: rgba(0, 0, 0, 0.2);
+$play-button-bg: rgba(255, 255, 255, 0.9);
+$transition-fast: 0.2s ease;
+$transition-smooth: 0.3s ease;
+$border-radius: 12px;
+$shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+// Mixins
+@mixin flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@mixin absolute-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+@mixin aspect-ratio-16-9 {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; // 16:9 aspect ratio
+    height: 0;
+}
+
+// Main container
+.container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: $primary-color;
+    border-radius: $border-radius;
+    overflow: hidden;
+    box-shadow: $shadow;
+}
+
+// Thumbnail section
+.thumbnail {
+    @include aspect-ratio-16-9;
+    cursor: pointer;
+    overflow: hidden;
+
+    &:hover {
+        .thumbnailImage {
+            transform: scale(1.05);
+        }
+
+        .playOverlay {
+            background-color: $overlay-light;
+        }
+
+        .playButton {
+            transform: scale(1.1);
+            background-color: $white;
+        }
+    }
+}
+
+.thumbnailImage {
+    @include absolute-fill;
+    object-fit: cover;
+    transition: transform $transition-smooth;
+}
+
+.playOverlay {
+    @include absolute-fill;
+    @include flex-center;
+    background-color: $overlay-dark;
+    transition: background-color $transition-smooth;
+}
+
+.playButton {
+    width: 80px;
+    height: 80px;
+    background-color: $play-button-bg;
+    border-radius: 50%;
+    @include flex-center;
+    transition: all $transition-smooth;
+    cursor: pointer;
+
+    &:hover {
+        transform: scale(1.1);
+    }
+}
+
+.playIcon {
+    width: 32px;
+    height: 32px;
+    color: #333;
+    margin-left: 4px;
+}
+
+.trailerLabel {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    color: $white;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+// Video player section
+.videoPlayer {
+    position: relative;
+    width: 100%;
+    background-color: $primary-color;
+}
+
+.videoHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: $white;
+}
+
+.videoTitle {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: $white;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color $transition-fast;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.closeIcon {
+    width: 24px;
+    height: 24px;
+}
+
+.videoWrapper {
+    @include aspect-ratio-16-9;
+}
+
+.videoFrame {
+    @include absolute-fill;
+    border: none;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .container {
+        margin: 0 16px;
+    }
+
+    .videoHeader {
+        padding: 12px 16px;
+    }
+
+    .videoTitle {
+        font-size: 16px;
+    }
+
+    .playButton {
+        width: 60px;
+        height: 60px;
+    }
+
+    .playIcon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .trailerLabel {
+        font-size: 16px;
+        bottom: 16px;
+        left: 16px;
+    }
+
+    .closeIcon {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        margin: 0 8px;
+        border-radius: 8px;
+    }
+
+    .videoHeader {
+        padding: 8px 12px;
+    }
+
+    .videoTitle {
+        font-size: 14px;
+    }
+
+    .playButton {
+        width: 50px;
+        height: 50px;
+    }
+
+    .playIcon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .trailerLabel {
+        font-size: 14px;
+        bottom: 12px;
+        left: 12px;
+    }
+}

@@ -8,32 +8,33 @@ import {
     faChair,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
 import styles from './InfoMovie.module.scss';
 import Button from '../../../../components/Button';
-import { roomData } from '../../../../utils/data/roomData';
-import { cinemasData } from '../../../../utils/data/cinemaData';
-import useCinema from '../../../../hooks/useCinema';
 
 type Props = {
     movie: IMovie;
     selectedTime: string;
     selectedSeats: string[];
+    cinemaName: string;
+    onContinue: () => void;
+    showContinueButton?: boolean; // Thêm prop này để điều khiển hiển thị nút
 };
 
-const InfoMovie: React.FC<Props> = ({ movie, selectedTime, selectedSeats }) => {
+const InfoMovie: React.FC<Props> = ({
+    movie,
+    selectedTime,
+    selectedSeats,
+    cinemaName,
+    onContinue,
+    showContinueButton = true // Mặc định hiển thị nút
+}) => {
+
     const formatDate = (date?: Date) => {
         if (!date) return 'Chưa rõ';
         const d = new Date(date);
         return d.toLocaleDateString('vi-VN');
     };
 
-    const selectedCinema = useCinema();
-    console.log(selectedCinema)
-    const room = roomData.find((item) => item.cinemaID === selectedCinema && item.id === movie.room_id);
-    const cinema = cinemasData.find((item) => item.id === selectedCinema);
-
-    console.log(room)
     return (
         <div className={styles['info-movie']}>
             <div className={styles['info-movie__top']}>
@@ -52,7 +53,9 @@ const InfoMovie: React.FC<Props> = ({ movie, selectedTime, selectedSeats }) => {
                         <td className={styles['label']}>
                             <FontAwesomeIcon icon={faTags} /> Thể loại
                         </td>
-                        <td className={styles['value']}>{movie.category.join(', ')}</td>
+                        <td className={styles['value']}>
+                            {Array.isArray(movie.categories) ? movie.categories.join(', ') : 'Chưa rõ'}
+                        </td>
                     </tr>
                     <tr>
                         <td className={styles['label']}>
@@ -65,7 +68,7 @@ const InfoMovie: React.FC<Props> = ({ movie, selectedTime, selectedSeats }) => {
                         <td className={styles['label']}>
                             <FontAwesomeIcon icon={faFilm} /> Rạp chiếu
                         </td>
-                        <td className={styles['value']}>{cinema?.name}</td>
+                        <td className={styles['value']}>{cinemaName || ""}</td>
                     </tr>
                     <tr>
                         <td className={styles['label']}>
@@ -83,20 +86,29 @@ const InfoMovie: React.FC<Props> = ({ movie, selectedTime, selectedSeats }) => {
                         <td className={styles['label']}>
                             <FontAwesomeIcon icon={faFilm} /> Phòng chiếu
                         </td>
-                        <td className={styles['value']}>{room?.name}</td>
+                        <td className={styles['value']}>{movie.screenRoom}</td>
                     </tr>
                     <tr>
                         <td className={styles['label']}>
                             <FontAwesomeIcon icon={faChair} /> Ghế ngồi
                         </td>
-                        <td className={styles['value']}>{selectedSeats.length > 0 ? selectedSeats.join(', ') : 'Chưa chọn'}</td>
+                        <td className={styles['value']}>
+                            {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'Chưa chọn'}
+                        </td>
                     </tr>
                 </tbody>
             </table>
 
-            <Button className={styles['btn-continue']} >TIẾP TỤC</Button>
+            {showContinueButton && (
+                <Button
+                    className={styles['btn-continue']}
+                    onClick={onContinue}
+                    disabled={selectedSeats.length === 0}
+                >
+                    TIẾP TỤC
+                </Button>
+            )}
         </div>
-
     );
 };
 

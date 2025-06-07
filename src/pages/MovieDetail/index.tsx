@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Container, Row } from 'reactstrap';
+import { Col, Container, Row } from 'reactstrap';
 import { Table, notification } from 'antd';
 
 import styles from './MovieDetail.module.scss';
@@ -18,6 +18,8 @@ import { getMovieById } from '../../features/movie/movieAsync';
 import { getShowtimeByCinema } from '../../features/showtime/showtimeAsync';
 import useCinema from '../../hooks/useCinema';
 import { IShowtime } from '../../utils/interfaces/showtime';
+import VideoTrailer from './../../components/VideoTrailer/index';
+import Review from '../../components/Review';
 
 type stateValue = {
     auth: {
@@ -29,16 +31,20 @@ const MovieDetail: React.FC = () => {
     const param = useParams();
     const navigate = useNavigate();
     const [movieInfo, setMovieInfo] = useState<IMovie>();
-    const [selectedDay, setSelectedDay] = useState('');
+    const [selectedDay, setSelectedDay] = useState<Date>();
     const [selectedTime, setSelectedTime] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const dispatch = useDispatch<AppDispatch>();
-    const { currentMovie } = useMovie();
+    const { movie } = useMovie();
     const { selectedCinema } = useCinema();
     const user = useSelector((state: stateValue) => state.auth.currentUser);
     const { showtime } = useSelector((state: RootState) => state.showtime)
-    const filterShowtime = showtime.filter((show: IShowtime) => show.movie_id == param.id)
+    const filterShowtime = showtime.filter((show: IShowtime) => show.movie_id == param.id);
+    const trailerRef = useRef<HTMLDivElement | null>(null);
 
+    const handleScrollToTrailer = () => {
+        trailerRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
     useEffect(() => {
         const id = String(param.id);
         dispatch(getMovieById(id));
@@ -46,13 +52,12 @@ const MovieDetail: React.FC = () => {
     }, [dispatch, param]);
 
     useEffect(() => {
-        if (currentMovie) {
-            setMovieInfo(currentMovie);
+        if (movie) {
+            setMovieInfo(movie);
         }
-    }, [currentMovie]);
+    }, [movie]);
 
-    console.log(movieInfo)
-    const handleSelectShowtime = (day: string, time: string) => {
+    const handleSelectShowtime = (filterShowtime: IShowtime) => {
         if (!selectedCinema) {
             notification.warning({
                 message: 'Vui lòng chọn rạp phim trước khi đặt vé',
@@ -60,8 +65,8 @@ const MovieDetail: React.FC = () => {
             });
             return;
         }
-        setSelectedDay(day);
-        setSelectedTime(time);
+        setSelectedDay(filterShowtime?.date);
+        setSelectedTime(filterShowtime?.time);
         setConfirmOpen(true);
     };
 
@@ -82,9 +87,7 @@ const MovieDetail: React.FC = () => {
             });
         }
         localStorage.setItem('bookingInfo', JSON.stringify({ time: selectedTime }));
-        navigate(`/select-seat/${movieInfo?._id}`, {
-            state: { selectedTime },
-        });
+        navigate(`/select-seat/${movieInfo?._id}`);
     };
 
 
@@ -125,7 +128,9 @@ const MovieDetail: React.FC = () => {
                     <div className={styles.movie__content}>
                         <h3>{movieInfo?.name}</h3>
                         <p>{movieInfo?.description}</p>
-                        <span><strong>Thể loại:</strong> {movieInfo?.categories.join(', ')}</span>
+                        <span><strong>Thể loại:</strong> {movieInfo?.categories && Array.isArray(movieInfo.categories)
+                            ? movieInfo.categories.join(', ')
+                            : 'Chưa rõ'}</span>
                         <span><strong>Đạo diễn:</strong> {movieInfo?.director}</span>
                         <span><strong>Độ tuổi cho phép:</strong> {movieInfo?.ageAllowed}</span>
                         <span><strong>Thời lượng:</strong> {movieInfo?.duration} phút</span>
@@ -140,6 +145,20 @@ const MovieDetail: React.FC = () => {
                         <Schedule showtimeData={filterShowtime} onSelectShowtime={handleSelectShowtime} />
                     </div>
                 </div>
+            </Row>
+            <Row className={styles.trailer_container}>
+                <Col lg='12' className={styles.trailer_title}>
+                    <h1 onClick={handleScrollToTrailer}>Trailer</h1>
+                </Col >
+                {movieInfo?.trailer && (
+                    <div ref={trailerRef}>
+                        <Col lg='12' className={styles.trailer}>
+                            <VideoTrailer trailerUrl={movieInfo.trailer} movieName={movieInfo.name || ''} />
+                            <Review movieId={String(param.id)} currentUser={user} />
+                        </Col>
+                    </div>
+                )}
+
             </Row>
 
             <Modal isOpen={confirmOpen} onCLose={handleConfirmClose}>

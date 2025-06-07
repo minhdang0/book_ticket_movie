@@ -16,6 +16,9 @@ import { AppDispatch, RootState } from '../../store';
 import { getShowtimeByCinema } from '../../features/showtime/showtimeAsync';
 import { setSelectedMovie } from '../../features/movie/movieSlice';
 import { IShowtime } from '../../utils/interfaces/showtime';
+import { setSelectedRoom } from '../../features/room/roomSlice';
+import { setCurrentShowtime } from '../../features/showtime/showtimeSlice';
+import VideoTrailer from '../VideoTrailer';
 
 type Props = {
   movie: IMovie;
@@ -32,6 +35,7 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
   const [isOpen, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [openSelect, setOpenSelect] = useState(false);
+  const [confirmTrailer, setConfirmTrailer] = useState(false);
   const [selectedDay, setSelectedDay] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const navigate = useNavigate();
@@ -101,12 +105,19 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
     setOpen(false);
   }
 
-  const handleSelectShowtime = (day: string, time: string) => {
-    setSelectedDay(day);
-    setSelectedTime(time);
-    setConfirmOpen(true);
-  }
+  const handleSelectShowtime = (show: IShowtime) => {
+    setSelectedDay(new Date(show.date).toLocaleDateString('vi-VN'));
+    setSelectedTime(show.time);
+    dispatch(setCurrentShowtime(show));
+    if (show.room_id) {
+      console.log(show.room_id)
+      dispatch(setSelectedRoom(show.room_id));
+    } else {
+      console.warn("Showtime không có room_id!");
+    }
 
+    setConfirmOpen(true);
+  };
   const handleConfirmClose = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setConfirmOpen(false);
@@ -135,6 +146,17 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
   const handleSelectCinema = () => {
     setOpenSelect(false)
   }
+
+  const handleOpenTrailer = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setConfirmTrailer(true);
+  }
+
+  const handleCloseTrailer = () => {
+    setConfirmTrailer(false);
+  }
+
   if (!movie) return null;
   return (
     <>
@@ -142,6 +164,17 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
         {/* movie content */}
         <div className={styles.movie__image}>
           <img src={movie.image} alt={movie.name} />
+          <div className={styles.trailer__overlay}>
+            <button
+              className={styles.trailer__button}
+              onClick={handleOpenTrailer}
+              aria-label="Xem trailer"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M8 5v14l11-7z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div className={`${styles.movie__content} mt-2`}>
           <Link to={`/movie/${movie._id}`} >  <h3 className={styles.movie__title}>{movie.name}</h3></Link>
@@ -184,6 +217,10 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
           </div>
         </div>
       </Modal >
+      <Modal isOpen={confirmTrailer} onCLose={handleCloseTrailer}>
+        <h2 className={styles.trailer_modal}>Trailer phim {movie.name}</h2>
+        {movie.trailer && <VideoTrailer trailerUrl={movie?.trailer} movieName={movie.name} />}
+      </Modal>
     </>
   );
 };

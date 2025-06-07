@@ -9,7 +9,8 @@ const config = {
         register: '/register',
         user: `/p/:userId`,
         selectSeat: `/select-seat/:movieId`,
-        movieDetail: '/movie/:id'
+        movieDetail: '/movie/:id',
+        payment: '/payment'
     }
 }
 

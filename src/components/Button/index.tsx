@@ -10,6 +10,7 @@ type Props = {
     secondary?: boolean,
     warning?: boolean,
     size?: 'large' | 'small' | 'medium',
+    disabled?: boolean,
 };
 
 const Button = ({
@@ -19,7 +20,8 @@ const Button = ({
     secondary,
     warning,
     size,
-    className
+    disabled,
+    className,
 }: Props) => {
 
     return (
@@ -29,6 +31,7 @@ const Button = ({
             [styles.warning]: warning,
             [styles.size]: ['small', 'medium', 'large'].includes(size ?? '')
         }, className)}
+            disabled={disabled}
         >
             <span>{children}</span>
         </button>

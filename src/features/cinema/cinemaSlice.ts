@@ -7,7 +7,7 @@ import { ICinema } from '../../utils/interfaces/cinema';
 interface CinemaState {
     cinemas: ICinema[];
     selectedCinema: string | null;
-    currentCinema: ICinema | null;
+    currentCinema: ICinema | {};
     loading: boolean;
     error: string | null;
 }
@@ -15,7 +15,7 @@ interface CinemaState {
 const initialState: CinemaState = {
     cinemas: [],
     selectedCinema: null,
-    currentCinema: null,
+    currentCinema: {},
     loading: false,
     error: null,
 };

@@ -10,4 +10,5 @@ const getRoom = async (id: string) => {
     return response.data;
 }
 
+
 export default { getAllRooms, getRoom };

@@ -1,7 +1,9 @@
 export interface ISeat {
-    id: number;
-    roomId: number;
-    typeId: number;
+    _id: string;
+    room_id: string;
     name: string;
-    isBooked: boolean
+    isBooked: boolean;
+    isSelecting: boolean;
+    seatTypeName: string;
+    seatTypePrice: number;
 }

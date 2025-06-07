@@ -4,6 +4,7 @@ import cinemaReducer from '../features/cinema/cinemaSlice'
 import movieReducer from '../features/movie/movieSlice'
 import roomReducer from '../features/room/roomSlice'
 import showtimeReducer from '../features/showtime/showtimeSlice';
+import seatReducer from '../features/seat/seatSlice';
 import logger from "redux-logger";
 import { persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage';
@@ -19,7 +20,8 @@ const rootReducer = combineReducers({
   cinema: cinemaReducer,
   movie: movieReducer,
   room: roomReducer,
-  showtime: showtimeReducer
+  showtime: showtimeReducer,
+  seat: seatReducer
 })
 export const store = configureStore({
   reducer: persistReducer(rootConfig, rootReducer),

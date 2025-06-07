@@ -1,9 +1,10 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { getAllRooms, getRoomByCinemaId, getRoomById } from './roomAsync';
 import { IRoom } from '../../utils/interfaces/room';
 
 interface RoomState {
     rooms: IRoom[];
+    selectedRoom: string | null,
     currentRoom: IRoom | null;
     loading: boolean;
     error: string | null;
@@ -11,6 +12,7 @@ interface RoomState {
 
 const initialState: RoomState = {
     rooms: [],
+    selectedRoom: null,
     currentRoom: null,
     loading: false,
     error: null,
@@ -20,6 +22,9 @@ const roomSlice = createSlice({
     name: 'room',
     initialState,
     reducers: {
+        setSelectedRoom: (state, action: PayloadAction<string | null>) => {
+            state.selectedRoom = action.payload;
+        },
         clearError: (state) => {
             state.error = null;
         },
@@ -69,6 +74,6 @@ const roomSlice = createSlice({
     },
 });
 
-export const { clearError } = roomSlice.actions;
+export const { setSelectedRoom, clearError } = roomSlice.actions;
 
 export default roomSlice.reducer;

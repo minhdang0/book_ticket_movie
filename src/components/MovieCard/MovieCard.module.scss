@@ -8,17 +8,82 @@
     justify-content: center;
     align-items: center;
     padding: 0 !important;
-    margin: 0 !important ;
+    margin: 0 !important;
 }
 
 .movie__image {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    border-radius: 10px;
+
     img {
         width: 260px;
         height: 400px;
         border-radius: 10px;
+        transition:
+            transform 0.3s ease,
+            filter 0.3s ease;
+    }
+
+    &:hover {
+        cursor: pointer;
+        img {
+            transform: scale(1.05);
+            filter: brightness(0.7);
+        }
+
+        .trailer__overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+    }
+}
+
+.trailer__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+.trailer__button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(128, 128, 128, 0.9);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+
+    &:hover {
+        background-color: rgba(128, 128, 128, 1);
+        transform: scale(1.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    &:active {
+        transform: scale(0.95);
+    }
+
+    svg {
+        margin-left: 2px; // Để căn giữa icon play
     }
 }
 
@@ -26,6 +91,7 @@
     width: 260px;
     padding: 5px;
 }
+
 .movie__title {
     font-size: calc(13px + 0.6vw);
     letter-spacing: 0.02%;
@@ -70,6 +136,7 @@
 .schedule__content {
     padding: 5px;
 }
+
 .detail__showtime {
     display: flex;
     align-items: center;
@@ -77,7 +144,11 @@
     flex-direction: column;
     gap: 20px;
 }
+
 .btn__accept {
     background-color: #bb0000;
     padding: 4px 32px;
+}
+.trailer_modal {
+    font-family: "Oswald", sans-serif;
 }
