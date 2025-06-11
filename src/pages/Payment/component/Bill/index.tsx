@@ -1,39 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardBody, Container, Row, Col, Button, Table } from 'reactstrap';
+import { Card, CardBody, Container, Row, Col } from 'reactstrap';
+import Barcode from 'react-barcode';
 import styles from './Bill.module.scss';
 import { IBill } from '../../../../utils/interfaces/bill';
-import { IBooking } from '../../../../utils/interfaces/booking';
-import billService from '../../../../services/billService';
+import useCurrentUser from '../../../../hooks/useCurrentUser';
 
 interface BillComponentProps {
-    bill?: IBill;
+    bill?: IBill | null;
     booking?: string | null;
-}
-
-interface ProductItem {
-    seat_number: string;
-    seat_type: string;
-    price: number;
 }
 
 const Bill: React.FC<BillComponentProps> = ({ bill, booking }) => {
     const [billData, setBillData] = useState<IBill | null>(bill || null);
-    const [bookingData, setBookingData] = useState<IBooking | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
-    console.log(bookingData)
+    const [error, setError] = useState<string>('');
+    const currentUser = useCurrentUser();
+
     // Load bill data if not provided
     useEffect(() => {
         const loadBillData = async () => {
-            if (!bill && booking) {
+            if (booking) {
                 setLoading(true);
+                setError('');
                 try {
-                    const billResponse = await billService.getBillByBookingId(booking);
-                    setBillData(billResponse);
+                    const billResponse = await fetch(`http://localhost:4000/api/v1/bills/booking/${booking}`, {
+                        method: 'GET'
+                    });
 
-                    const bookingResponse = await billService.getBookingById(booking);
-                    setBookingData(bookingResponse);
+                    const data = await billResponse.json();
+                    console.log(data.data);
+                    setBillData(data.data);
+
                 } catch (error) {
                     console.error('Failed to load bill data:', error);
+                    setError('Không thể tải thông tin hóa đơn');
                 } finally {
                     setLoading(false);
                 }
@@ -43,8 +43,23 @@ const Bill: React.FC<BillComponentProps> = ({ bill, booking }) => {
         loadBillData();
     }, [bill, booking]);
 
-    const generateBarcode = (billId: string): string => {
-        return `*${billId.toUpperCase()}*`;
+    // Generate barcode value from bill ID
+    const generateBarcodeValue = (billId: string): string => {
+        if (!billId) return '000000000000';
+
+        // Convert ObjectId to numeric string for barcode
+        // Take the last 12 characters and convert hex to decimal
+        const hex = billId.slice(-12);
+        let numeric = '';
+
+        for (let i = 0; i < hex.length; i += 2) {
+            const hexPair = hex.substr(i, 2);
+            const decimal = parseInt(hexPair, 16);
+            numeric += decimal.toString().padStart(2, '0').slice(-2);
+        }
+
+        // Ensure we have exactly 12 digits for CODE128
+        return numeric.padStart(12, '0').slice(0, 12);
     };
 
     // Format date
@@ -60,15 +75,16 @@ const Bill: React.FC<BillComponentProps> = ({ bill, booking }) => {
         });
     };
 
-    // Print bill
-    const handlePrint = (): void => {
-        window.print();
-    };
-
-    // Download bill as PDF (có thể implement sau)
-    const handleDownloadPDF = (): void => {
-        // Implement PDF download logic
-        console.log('Download PDF functionality');
+    // Safe render for customer name
+    const renderCustomerName = (): string => {
+        if (currentUser?.firstName && currentUser?.lastName) {
+            return `${currentUser.firstName} ${currentUser.lastName}`;
+        } else if (currentUser?.firstName) {
+            return currentUser.firstName;
+        } else if (currentUser?.lastName) {
+            return currentUser.lastName;
+        }
+        return 'Khách hàng';
     };
 
     if (loading) {
@@ -84,22 +100,32 @@ const Bill: React.FC<BillComponentProps> = ({ bill, booking }) => {
         );
     }
 
-    if (!billData) {
+    if (error) {
         return (
             <Container className={styles.container}>
                 <div className="text-center text-danger">
-                    Không tìm thấy thông tin hóa đơn.
+                    <h4>Lỗi tải hóa đơn</h4>
+                    <p>{error}</p>
                 </div>
             </Container>
         );
     }
 
-    const productList: ProductItem[] = billData.product_list || [];
+    if (!billData) {
+        return (
+            <Container className={styles.container}>
+                <div className="text-center text-danger">
+                    <h4>Không tìm thấy thông tin hóa đơn.</h4>
+                    <p>Vui lòng kiểm tra lại mã booking hoặc liên hệ hỗ trợ.</p>
+                </div>
+            </Container>
+        );
+    }
 
     return (
         <Container className={`${styles.container} ${styles.printable}`}>
             <Row>
-                <Col md={10} className="mx-auto">
+                <Col md={8} className="mx-auto">
                     <Card className={styles.billCard}>
                         <CardBody>
                             {/* Header */}
@@ -111,132 +137,115 @@ const Bill: React.FC<BillComponentProps> = ({ bill, booking }) => {
 
                             {/* Bill Info */}
                             <Row className="mb-4">
-                                <Col sm={6}>
-                                    <div className={styles.billInfo}>
-                                        <p><strong>Mã hóa đơn:</strong> {billData._id}</p>
-                                        <p><strong>Mã booking:</strong> {billData.booking_id}</p>
-                                        <p><strong>Thời gian:</strong> {formatDate(billData.time)}</p>
-                                    </div>
-                                </Col>
-                                <Col sm={6} className="text-end">
+                                <Col sm={12} className="">
                                     {/* Barcode */}
                                     <div className={styles.barcode}>
-                                        <div className={styles.barcodeText}>
-                                            {generateBarcode(billData._id || '')}
+                                        <div className="d-flex flex-column mb-2">
+                                            <p><strong>Mã hóa đơn:</strong></p>
+                                            <Barcode
+                                                value={generateBarcodeValue(billData._id || '')}
+                                                format="CODE128"
+                                                width={3.0}
+                                                height={50}
+                                                fontSize={16}
+                                                textAlign="center"
+                                                textPosition="bottom"
+                                                textMargin={5}
+                                                background="#ffffff"
+                                                lineColor="#000000"
+                                                displayValue={true}
+                                            />
                                         </div>
-                                        <small className="text-muted d-block mt-1">
-                                            Mã vạch: {billData._id}
-                                        </small>
                                     </div>
                                 </Col>
+                                <Col sm={12}>
+                                    <div className={styles.billInfo}>
+                                        <p><strong>Thời gian:</strong> {formatDate(billData.print_time || new Date())}</p>
+                                        <p><strong>Khách hàng:</strong> {renderCustomerName()}</p>
+                                        {currentUser?.phone && (
+                                            <p><strong>Số điện thoại:</strong> {String(currentUser.phone)}</p>
+                                        )}
+                                    </div>
+                                </Col>
+
                             </Row>
 
                             {/* Product List */}
+                            {billData.product_list && billData.product_list.length > 0 && (
+                                <div className="mb-4">
+                                    <h5 className="text-primary mb-3">🎬 Chi tiết đơn hàng</h5>
+                                    <div className="table-responsive">
+                                        <table className="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mục</th>
+                                                    <th>Loại</th>
+                                                    <th className="text-end">Giá</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {billData.product_list.map((item, index) => (
+                                                    <tr key={index}>
+                                                        <td>{String(item.seat_number || 'N/A')}</td>
+                                                        <td>{String(item.seat_type || 'N/A')}</td>
+                                                        <td className="text-end">
+                                                            {(Number(item.price) || 0).toLocaleString('vi-VN')} VNĐ
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Payment Summary */}
                             <div className="mb-4">
-                                <h5 className="mb-3">Chi tiết sản phẩm</h5>
-                                <Table bordered hover responsive>
-                                    <thead className="table-primary">
-                                        <tr>
-                                            <th className="text-center">#</th>
-                                            <th>Số ghế</th>
-                                            <th>Loại ghế</th>
-                                            <th className="text-end">Đơn giá</th>
-                                            <th className="text-center" >SL</th>
-                                            <th className="text-end">Thành tiền</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {productList.map((item: ProductItem, index: number) => (
-                                            <tr key={index}>
-                                                <td className="text-center">{index + 1}</td>
-                                                <td>
-                                                    <strong>{item.seat_number}</strong>
-                                                </td>
-                                                <td>
-                                                    <span className={`badge ${item.seat_type === 'VIP' ? 'bg-warning' :
-                                                        item.seat_type === 'Ghế thường' ? 'bg-info' : 'bg-secondary'
-                                                        }`}>
-                                                        {item.seat_type}
-                                                    </span>
-                                                </td>
-                                                <td className="text-end">
-                                                    {item.price.toLocaleString('vi-VN')} VNĐ
-                                                </td>
-                                                <td className="text-center">1</td>
-                                                <td className="text-end">
-                                                    <strong>{item.price.toLocaleString('vi-VN')} VNĐ</strong>
-                                                </td>
-                                            </tr>
-                                        ))}
-
-                                        {/* Total Row */}
-                                        <tr className="table-warning">
-                                            <td colSpan={5} className="text-end fw-bold">
-                                                TỔNG CỘNG:
-                                            </td>
-                                            <td className="text-end fw-bold fs-5">
-                                                {billData.total_price?.toLocaleString('vi-VN')} VNĐ
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </Table>
+                                <Card className="border-primary">
+                                    <CardBody className="bg-light">
+                                        <h5 className="text-primary mb-3">💰 Thông tin thanh toán</h5>
+                                        <Row>
+                                            <Col sm={8}>
+                                                <div className="d-flex justify-content-between">
+                                                    <strong className="h5 text-primary">TỔNG TIỀN ĐÃ THANH TOÁN:</strong>
+                                                    <strong className="h5 text-success">
+                                                        {(Number(billData.total) || 0).toLocaleString('vi-VN')} VNĐ
+                                                    </strong>
+                                                </div>
+                                            </Col>
+                                            <Col sm={4} className="text-end">
+                                                <div className="text-success">
+                                                    <i className="fas fa-check-circle fa-2x"></i>
+                                                    <div className="mt-2">
+                                                        <strong>THANH TOÁN THÀNH CÔNG</strong>
+                                                    </div>
+                                                    <small className="text-muted">
+                                                        {formatDate(billData.print_time || new Date())}
+                                                    </small>
+                                                </div>
+                                            </Col>
+                                        </Row>
+                                    </CardBody>
+                                </Card>
                             </div>
-
-                            {/* Payment Info */}
-                            <Row className="mb-4">
-                                <Col sm={6}>
-                                    <div className={styles.paymentInfo}>
-                                        <h6>Thông tin thanh toán:</h6>
-                                        <p className="mb-1"><strong>Phương thức:</strong> Chuyển khoản ngân hàng</p>
-                                        <p className="mb-1"><strong>Trạng thái:</strong>
-                                            <span className="badge bg-success ms-2">Đã thanh toán</span>
-                                        </p>
-                                        <p className="mb-1"><strong>Số lượng vé:</strong> {productList.length} vé</p>
-                                    </div>
-                                </Col>
-                                <Col sm={6}>
-                                    <div className={styles.companyInfo}>
-
-                                    </div>
-                                </Col>
-                            </Row>
 
                             {/* Footer */}
-                            <div className="text-center mt-4 pt-3 border-top">
-                                <p className="text-muted mb-2">
-                                    Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
+                            <div className="text-center mb-4">
+                                <hr />
+                                <p className="text-success mb-2">
+                                    <strong>✅ Đặt vé thành công!</strong>
                                 </p>
-                                <p className="small text-muted">
-                                    Hóa đơn được tạo tự động bởi hệ thống - {formatDate(new Date())}
+                                <p className="text-muted mb-1">
+                                    <strong>Cảm ơn quý khách đã sử dụng dịch vụ!</strong>
                                 </p>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="text-center mt-4 d-print-none">
-                                <Button
-                                    color="primary"
-                                    className="me-3"
-                                    onClick={handlePrint}
-                                >
-                                    🖨️ In hóa đơn
-                                </Button>
-                                <Button
-                                    color="success"
-                                    onClick={handleDownloadPDF}
-                                >
-                                    📄 Tải PDF
-                                </Button>
-                            </div>
-
-                            {/* QR Code for Bill Verification */}
-                            <div className="text-center mt-4">
-                                <div className={styles.qrCodeSmall}>
-                                    <img
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${billData._id}`}
-                                        alt="Bill QR Code"
-                                        style={{ width: '80px', height: '80px' }}
-                                    />
-                                    <p className="small text-muted mt-1">Mã QR xác thực hóa đơn</p>
+                                <p className="text-muted small">
+                                    Vui lòng giữ hóa đơn để kiểm tra khi vào rạp.<br />
+                                    Hotline hỗ trợ: 1900 1234 | Email: support@cinemago.com
+                                </p>
+                                <div className="mt-3">
+                                    <small className="text-muted">
+                                        Hóa đơn được tạo tự động bởi hệ thống Cinema Booking
+                                    </small>
                                 </div>
                             </div>
                         </CardBody>

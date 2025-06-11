@@ -1,9 +1,9 @@
 export interface IBill {
     _id?: string;
     booking_id: string;
-    ticket_id: string;
-    time: Date;
-    total_price: number;
+    showtime_id: string;
+    print_time: Date;
+    total: number;
     product_list: Array<{
         seat_number: string;
         seat_type: string;

@@ -79,7 +79,10 @@
         }
     }
 }
-
+.selectedComboItem {
+    display: flex;
+    gap: 20px;
+}
 // Special Combo Sections
 .specialComboSection {
     background: #fff;

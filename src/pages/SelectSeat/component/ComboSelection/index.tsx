@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faMinus, faUser } from '@fortawesome/free-solid-svg-icons';
 import styles from './ComboSelection.module.scss';
@@ -8,6 +8,14 @@ import useCurrentUser from '../../../../hooks/useCurrentUser';
 import ConfirmPayment from '../ConfirmPayment';
 import { ComboItem } from '../../../../utils/interfaces/combo';
 import { combos } from '../../../../utils/data/comboData';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../store';
+import billService from '../../../../services/billService';
+import bookingService from '../../../../services/bookingService';
+import { IBill } from '../../../../utils/interfaces/bill';
+import { IBooking } from '../../../../utils/interfaces/booking';
+import { IFood } from '../../../../utils/interfaces/food';
+import { ITicket } from '../../../../utils/interfaces/ticket';
 
 interface PaymentInfo {
     name: string;
@@ -29,14 +37,31 @@ const ComboSelection: React.FC<Props> = ({
     ticketPrice
 }) => {
     const [selectedCombos, setSelectedCombos] = useState<ComboItem[]>([]);
-    const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
-        name: '',
-        phone: '',
-        email: ''
-    });
+    const [voucher, setVoucher] = useState<string>('');
+    const [orderNote, setOrderNote] = useState<string>('');
+
     const user = useCurrentUser();
     const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
     const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+
+    const { currentShowtime } = useSelector((state: RootState) => state.showtime);
+
+    // Load combo data từ localStorage khi component mount
+    useEffect(() => {
+        if (currentShowtime?._id) {
+            const savedCombos = JSON.parse(
+                localStorage.getItem(`selectedCombos_${currentShowtime._id}`) || '[]'
+            );
+            setSelectedCombos(savedCombos);
+        }
+    }, [currentShowtime]);
+
+    // Cập nhật localStorage mỗi khi selectedCombos thay đổi
+    useEffect(() => {
+        if (currentShowtime?._id) {
+            localStorage.setItem(`selectedCombos_${currentShowtime._id}`, JSON.stringify(selectedCombos));
+        }
+    }, [selectedCombos, currentShowtime]);
 
     const updateComboQuantity = (comboId: string, newQuantity: number) => {
         if (newQuantity === 0) {
@@ -62,14 +87,94 @@ const ComboSelection: React.FC<Props> = ({
         return selectedCombos.find(item => item.id === comboId)?.quantity || 0;
     };
 
-    const handlePaymentInfoChange = (field: keyof PaymentInfo, value: string) => {
-        setPaymentInfo(prev => ({
-            ...prev,
-            [field]: value
+    // Tạo booking với thông tin combo - FIX: Thêm showtime_id vào IBooking
+    const createBookingWithCombo = async (): Promise<string> => {
+        const bookingData: IBooking = {
+            customer_id: user._id,
+            seat_numbers: selectedSeatsInfo.map(seat => seat.name),
+            ticket_quantity: selectedSeatsInfo.length,
+            total_price: ticketPrice + totalComboPrice,
+            booking_status: 'Confirmed',
+            voucher: voucher,
+
+        };
+
+        const createdBooking = await bookingService.createBooking(bookingData);
+        return createdBooking._id;
+    };
+
+    // Tạo bill với thông tin đầy đủ - Sử dụng đúng interface IBill (không có showtime_id)
+    const createFullBill = async (bookingId: string): Promise<IBill> => {
+        // Tạo product list bao gồm cả ghế và combo
+        const seatProducts = selectedSeatsInfo.map(seat => ({
+            seat_number: seat.name,
+            seat_type: seat.seatTypeName,
+            price: seat.seatTypePrice
         }));
+
+        const comboProducts = selectedCombos.map(combo => ({
+            seat_number: `Combo: ${combo.name}`, // Sử dụng trường này để lưu tên combo
+            seat_type: 'Food & Beverage',
+            price: combo.price * combo.quantity
+        }));
+
+        const billData: IBill = {
+            booking_id: bookingId,
+            ticket_id: currentShowtime?._id || '', // ticket_id có thể là movie_id hoặc showtime_id
+            print_time: new Date(),
+            total: ticketPrice + totalComboPrice,
+            product_list: [...seatProducts, ...comboProducts]
+        };
+
+        const createdBill = await billService.createBill(billData);
+        return createdBill;
+    };
+
+    // Tạo tickets cho từng ghế
+    const createTicketsForSeats = async (billId: string): Promise<void> => {
+        const ticketData: Omit<ITicket, '_id'>[] = selectedSeatsInfo.map(seat => ({
+            bill_id: billId,
+            movie_id: currentShowtime?.movie_id,
+            seat_name: seat.name,
+            room_name: currentShowtime?.room_name,
+            cinema_name: currentShowtime?.cinema_name,
+            show_time: currentShowtime?.show_time,
+            price: seat.seatTypePrice
+        }));
+
+        await billService.createTickets(billId, ticketData);
+    };
+
+    // Tạo food items cho combo
+    const createFoodItems = async (billId: string): Promise<void> => {
+        if (selectedCombos.length === 0) return;
+
+        const foodData: Omit<IFood, '_id'>[] = selectedCombos.map(combo => ({
+            bill_id: billId,
+            name: combo.name,
+            price: combo.price,
+            quantity: combo.quantity
+        }));
+
+        await billService.createFoods(billId, foodData);
     };
 
     const handlePaymentClick = () => {
+        // Lưu thông tin bổ sung vào localStorage
+        if (currentShowtime?._id) {
+            const bookingExtras = {
+                voucher,
+                orderNote,
+                selectedCombos,
+                paymentInfo: {
+                    name: user.firstName + " " + user.lastName,
+                    phone: user.phone,
+                    email: user.email
+                }
+            };
+            localStorage.setItem(`bookingExtras_${currentShowtime._id}`, JSON.stringify(bookingExtras));
+        }
+
         setShowConfirmModal(true);
     };
 
@@ -81,11 +186,36 @@ const ComboSelection: React.FC<Props> = ({
         try {
             setIsProcessingPayment(true);
 
-            onContinue(selectedCombos, paymentInfo);
+            // 1. Tạo booking
+            const bookingId = await createBookingWithCombo();
+
+            // 2. Tạo bill
+            const createdBill = await createFullBill(bookingId);
+
+            // 3. Tạo tickets cho ghế
+            await createTicketsForSeats(createdBill._id!);
+
+            // 4. Tạo food items cho combo
+            await createFoodItems(createdBill._id!);
+
+            // 5. Lưu bill ID để chuyển sang trang thanh toán
+            if (currentShowtime?._id) {
+                localStorage.setItem(`billId_${currentShowtime._id}`, createdBill._id!);
+            }
+
+            const finalPaymentInfo: PaymentInfo = {
+                name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
+                phone: user.phone ?? '',
+                email: user.email ?? ''
+            };
+
+            // Chuyển sang trang thanh toán
+            onContinue(selectedCombos, finalPaymentInfo);
             setShowConfirmModal(false);
 
         } catch (error: any) {
             console.error('Error during payment process:', error?.response?.data || error.message);
+            // alert('Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.');
         } finally {
             setIsProcessingPayment(false);
         }
@@ -144,10 +274,9 @@ const ComboSelection: React.FC<Props> = ({
                             <input
                                 type="text"
                                 id="customerName"
-                                value={user.firstName + user.lastName}
+                                value={user.firstName + " " + user.lastName}
                                 name='fullname'
-                                onChange={(e) => handlePaymentInfoChange('name', e.target.value)}
-                                placeholder=""
+                                readOnly
                                 className={styles.paymentInput}
                             />
                         </div>
@@ -159,8 +288,7 @@ const ComboSelection: React.FC<Props> = ({
                                 id="customerPhone"
                                 name='phone'
                                 value={user.phone}
-                                onChange={(e) => handlePaymentInfoChange('phone', e.target.value)}
-                                placeholder="Nhập số điện thoại"
+                                readOnly
                                 className={styles.paymentInput}
                             />
                         </div>
@@ -172,8 +300,7 @@ const ComboSelection: React.FC<Props> = ({
                                 id="customerEmail"
                                 name='email'
                                 value={user.email}
-                                onChange={(e) => handlePaymentInfoChange('email', e.target.value)}
-                                placeholder=""
+                                readOnly
                                 className={styles.paymentInput}
                             />
                         </div>
@@ -242,6 +369,19 @@ const ComboSelection: React.FC<Props> = ({
                 </div>
             </div>
 
+            {/* Selected Combos Summary */}
+            {selectedCombos.length > 0 && (
+                <div className={styles.selectedCombosSection}>
+                    <h4>Combo đã chọn:</h4>
+                    {selectedCombos.map(combo => (
+                        <div key={combo.id} className={styles.selectedComboItem}>
+                            <span><strong>{combo.name}</strong> x {combo.quantity}</span>
+                            <span>{formatPrice(combo.price * combo.quantity)}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Note và voucher section */}
             <div className={styles.noteSection}>
                 <div className={styles.inputGroup}>
@@ -249,6 +389,8 @@ const ComboSelection: React.FC<Props> = ({
                     <input
                         type="text"
                         id="voucher"
+                        value={voucher}
+                        onChange={(e) => setVoucher(e.target.value)}
                         placeholder="Nhập mã giảm giá hoặc ghi chú đặc biệt"
                         className={styles.voucherInput}
                     />
@@ -258,6 +400,8 @@ const ComboSelection: React.FC<Props> = ({
                     <label htmlFor="orderNote">Ghi chú Đơn</label>
                     <textarea
                         id="orderNote"
+                        value={orderNote}
+                        onChange={(e) => setOrderNote(e.target.value)}
                         placeholder="Nhập ghi chú đặc biệt cho đơn hàng của bạn"
                         className={styles.orderNote}
                         rows={3}
@@ -271,10 +415,12 @@ const ComboSelection: React.FC<Props> = ({
                     <span>Tổng tiền vé:</span>
                     <span>{formatPrice(ticketPrice)}</span>
                 </div>
-                <div className={styles.summaryRow}>
-                    <span>Tổng tiền combo:</span>
-                    <span>{formatPrice(totalComboPrice)}</span>
-                </div>
+                {selectedCombos.length > 0 && (
+                    <div className={styles.summaryRow}>
+                        <span>Tổng tiền combo:</span>
+                        <span>{formatPrice(totalComboPrice)}</span>
+                    </div>
+                )}
                 <div className={styles.summaryRow + ' ' + styles.total}>
                     <span>Tổng cộng:</span>
                     <span>{formatPrice(totalPrice)}</span>

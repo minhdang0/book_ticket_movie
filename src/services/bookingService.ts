@@ -5,8 +5,8 @@ const createBooking = async (data: IBooking) => {
     const response = await httpRequest.post('/bookings', data);
     return response.data;
 }
-const updateBookingStatus = async (data: IBooking) => {
-    const response = await httpRequest.patch('/bookings', data);
+const updateBookingStatus = async (id: string, data: IBooking) => {
+    const response = await httpRequest.put(`/bookings/${id}`, data);
     return response.data;
 }
 

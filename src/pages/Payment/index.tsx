@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { checkPaid } from '../../services/checkPay';
-import { Card, CardBody, Container, Row, Col, Button, Spinner } from 'reactstrap';
+import { Card, CardBody, Container, Row, Col, Button } from 'reactstrap';
 import styles from './Payment.module.scss'
 import randomContent from '../../utils/format/randomContent';
 import { RootState } from '../../store';
 import { useSelector } from 'react-redux';
 import { IBooking } from '../../utils/interfaces/booking';
-import { IBill } from '../../utils/interfaces/bill'; // Cần tạo interface này
+import { IBill } from '../../utils/interfaces/bill';
+import { ITicket } from '../../utils/interfaces/ticket';
+import { IFood } from '../../utils/interfaces/food';
 import useCurrentUser from '../../hooks/useCurrentUser';
 import Bill from './component/Bill';
 import bookingService from '../../services/bookingService';
 import billService from '../../services/billService';
 import { ISeat } from './../../utils/interfaces/seat';
+import PaymentChecker, { PaymentStatus } from './component/PaymentChecked';
 
 interface BookingData {
     selectedSeats: string[],
@@ -19,6 +21,14 @@ interface BookingData {
     sessionId: string,
     showtimeId: string,
     timestamp: Date
+}
+
+interface SelectedCombo {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    quantity: number;
 }
 
 interface Transaction {
@@ -29,35 +39,33 @@ interface Transaction {
     'Số tài khoản': string;
 }
 
-enum PaymentStatus {
-    WAITING = 'waiting',
-    PROCESSING = 'processing',
-    SUCCESS = 'success',
-    FAILED = 'failed'
-}
-
 const Payment: React.FC = () => {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [content, setContent] = useState<string>('');
     const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(PaymentStatus.WAITING);
     const [selectedSeat, setSelectedSeat] = useState<ISeat[]>([]);
+    const [selectedCombos, setSelectedCombos] = useState<SelectedCombo[]>([]);
     const [bookingData, setBookingData] = useState<BookingData | null>(null);
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [isChecking, setIsChecking] = useState<boolean>(false);
     const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
     const [billData, setBillData] = useState<IBill | null>(null);
+
     const { seats } = useSelector((state: RootState) => state.seat);
     const { currentShowtime } = useSelector((state: RootState) => state.showtime);
+    const { currentMovie } = useSelector((state: RootState) => state.movie);
     const currentUser = useCurrentUser();
 
-    const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Load booking data and selected seats
+    // Load booking data từ localStorage
     useEffect(() => {
         if (currentShowtime?._id && seats.length > 0) {
             const storedBookingData: BookingData = JSON.parse(
                 localStorage.getItem(`bookingData_${currentShowtime._id}`) || '{}'
+            );
+
+            const storedCombos: SelectedCombo[] = JSON.parse(
+                localStorage.getItem(`selectedCombos_${currentShowtime._id}`) || '[]'
             );
 
             if (storedBookingData && storedBookingData.selectedSeatIds) {
@@ -66,6 +74,7 @@ const Payment: React.FC = () => {
                 );
                 setSelectedSeat(selected);
                 setBookingData(storedBookingData);
+                setSelectedCombos(storedCombos);
             }
         }
     }, [currentShowtime, seats]);
@@ -77,20 +86,13 @@ const Payment: React.FC = () => {
     }, []);
 
     // Calculate total price
-    const getTotalPrice = useCallback((seats: ISeat[]): number => {
-        return seats.reduce((acc: number, cur: ISeat) => acc + cur.seatTypePrice, 0);
-    }, []);
+    const getTotalPrice = useCallback((): number => {
+        const seatTotal = selectedSeat.reduce((acc: number, cur: ISeat) => acc + cur.seatTypePrice, 0);
+        const comboTotal = selectedCombos.reduce((acc: number, cur: SelectedCombo) => acc + (cur.price * cur.quantity), 0);
+        return seatTotal + comboTotal;
+    }, [selectedSeat, selectedCombos]);
 
-    // Check if transaction matches our payment
-    const isValidTransaction = useCallback((transaction: Transaction): boolean => {
-        const totalPrice = getTotalPrice(selectedSeat);
-        const isAmountMatch = transaction['Giá trị'] === totalPrice;
-        const isContentMatch = transaction['Mô tả'].includes(content);
-
-        return isAmountMatch && isContentMatch;
-    }, [selectedSeat, content, getTotalPrice]);
-
-    // Create pending booking when component mounts
+    // Create pending booking
     const createPendingBooking = useCallback(async (): Promise<void> => {
         if (!currentUser || !bookingData || selectedSeat.length === 0 || createdBookingId) {
             return;
@@ -101,7 +103,7 @@ const Payment: React.FC = () => {
                 customer_id: currentUser._id,
                 seat_numbers: bookingData.selectedSeats,
                 ticket_quantity: selectedSeat.length,
-                total_price: getTotalPrice(selectedSeat),
+                total_price: getTotalPrice(),
                 booking_status: 'Pending',
                 voucher: ''
             };
@@ -111,49 +113,120 @@ const Payment: React.FC = () => {
             console.log('Pending booking created:', createdBooking);
         } catch (error) {
             console.error('Failed to create pending booking:', error);
+            setErrorMessage('Không thể tạo booking. Vui lòng thử lại.');
         }
     }, [currentUser, bookingData, selectedSeat, getTotalPrice, createdBookingId]);
 
-    // Update booking status to Confirmed
+    // Confirm booking
     const confirmBooking = useCallback(async (): Promise<void> => {
         if (!createdBookingId) {
             throw new Error('No booking ID found');
         }
 
-        const updatedBooking: IBooking = {
-            _id: createdBookingId,
-            booking_status: 'Confirmed'
-        };
+        try {
+            const updatedBooking: IBooking = {
+                booking_status: 'Confirmed'
+            };
 
-        const result = await bookingService.updateBookingStatus(updatedBooking);
-        console.log('Booking confirmed:', result);
-        return result;
+            const result = await bookingService.updateBookingStatus(createdBookingId, updatedBooking);
+            console.log('Booking confirmed:', result);
+            return result;
+        } catch (error) {
+            console.error('Failed to confirm booking:', error);
+            throw new Error('Không thể xác nhận booking');
+        }
     }, [createdBookingId]);
 
-    // Create bill after successful payment
-    const createBillRecord = useCallback(async (): Promise<void> => {
-        if (!createdBookingId) {
-            throw new Error('No booking ID found');
+    // Create bill and items - FIXED VERSION
+    const createBillAndItems = useCallback(async (): Promise<void> => {
+        if (!createdBookingId || !currentShowtime || !currentMovie) {
+            throw new Error('Missing required data for bill creation');
         }
 
-        const billData: IBill = {
-            booking_id: createdBookingId,
-            ticket_id: bookingData?.sessionId || '', // hoặc lấy từ showtime
-            time: new Date(),
-            total_price: getTotalPrice(selectedSeat),
-            product_list: selectedSeat.map((seat: ISeat) => ({
-                seat_number: seat.name,
-                seat_type: seat.seatTypeName,
-                price: seat.seatTypePrice
-            }))
-        };
+        try {
+            console.log('Creating bill with data:', {
+                createdBookingId,
+                selectedSeat,
+                selectedCombos,
+                totalPrice: getTotalPrice()
+            });
 
-        const createdBill = await billService.createBill(billData);
-        setBillData(createdBill);
-        console.log('Bill created:', createdBill);
-    }, [createdBookingId, bookingData, selectedSeat, getTotalPrice]);
+            const billData: IBill = {
+                booking_id: createdBookingId,
+                showtime_id: currentShowtime._id,
+                print_time: new Date(),
+                total: getTotalPrice(),
+                product_list: [
+                    ...selectedSeat.map((seat: ISeat) => ({
+                        seat_number: seat.name,
+                        seat_type: seat.seatTypeName,
+                        price: seat.seatTypePrice,
+                        type: 'seat'
+                    })),
+                    ...selectedCombos.map((combo: SelectedCombo) => ({
+                        seat_number: combo.name,
+                        seat_type: `Combo (x${combo.quantity})`,
+                        price: combo.price * combo.quantity,
+                        type: 'combo'
+                    }))
+                ]
+            };
 
-    // Cancel booking when component unmounts
+            console.log('Bill data to create:', billData);
+
+            // Tạo bill trước
+            const createdBill = await billService.createBill(billData);
+            console.log('Bill created successfully:', createdBill);
+
+            // Kiểm tra nếu bill được tạo thành công
+            if (!createdBill || !createdBill._id) {
+                throw new Error('Failed to create bill - no ID returned');
+            }
+
+            // Tạo tickets nếu có ghế
+            if (selectedSeat.length > 0) {
+                console.log('Creating tickets for seats:', selectedSeat);
+
+                const ticketData: Partial<ITicket>[] = selectedSeat.map((seat: ISeat) => ({
+                    bill_id: createdBill._id,
+                    movie_id: currentMovie,
+                    seat_name: seat.name,
+                    room_name: currentShowtime.room_name || 'Phòng chiếu',
+                    cinema_name: currentShowtime.cinema_name || 'CGV Cinema',
+                    show_time: new Date(currentShowtime.start_time),
+                    price: seat.seatTypePrice
+                }));
+
+                const createdTickets = await billService.createTickets(createdBill._id, ticketData);
+                console.log('Tickets created successfully:', createdTickets);
+            }
+
+            // Tạo food items nếu có combo
+            if (selectedCombos.length > 0) {
+                console.log('Creating food items for combos:', selectedCombos);
+
+                const foodData: Partial<IFood>[] = selectedCombos.map((combo: SelectedCombo) => ({
+                    bill_id: createdBill._id,
+                    name: combo.name,
+                    price: combo.price,
+                    quantity: combo.quantity
+                }));
+
+                const createdFoods = await billService.createFoods(createdBill._id, foodData);
+                console.log('Food items created successfully:', createdFoods);
+            }
+
+            // Cập nhật state với bill data
+            setBillData(createdBill);
+            console.log('Bill creation process completed successfully');
+
+        } catch (error: any) {
+            console.error('Failed to create bill and items:', error);
+            throw new Error(`Không thể tạo hóa đơn: ${error.message || 'Unknown error'}`);
+        }
+    }, [createdBookingId, currentShowtime, currentMovie, selectedSeat, selectedCombos, getTotalPrice]);
+
+    // Cancel booking
     const cancelBooking = useCallback(async (): Promise<void> => {
         if (!createdBookingId || paymentStatus === PaymentStatus.SUCCESS) {
             return;
@@ -161,159 +234,100 @@ const Payment: React.FC = () => {
 
         try {
             const cancelledBooking: IBooking = {
-                _id: createdBookingId,
                 booking_status: 'Cancelled'
             };
 
-            await bookingService.updateBookingStatus(cancelledBooking);
-            console.log('Booking cancelled:', createdBookingId);
+            await bookingService.updateBookingStatus(createdBookingId, cancelledBooking);
+            console.log('Booking cancelled');
         } catch (error) {
             console.error('Failed to cancel booking:', error);
         }
     }, [createdBookingId, paymentStatus]);
 
-    // Check payment status (chạy ngầm)
-    const checkPaymentStatus = useCallback(async (): Promise<void> => {
-        if (paymentStatus !== PaymentStatus.WAITING) return;
+    // Handle transaction found - SIMPLIFIED VERSION
+    const handleTransactionFound = useCallback((transaction: Transaction) => {
+        console.log('Valid transaction found:', transaction);
+        setPaymentStatus(PaymentStatus.PROCESSING);
 
-        try {
-            setIsChecking(true);
-            const response = await checkPaid();
-            setTransactions(response);
+        // Xử lý thanh toán sau 3 giây
+        processingTimeoutRef.current = setTimeout(async () => {
+            try {
+                console.log('Starting payment processing...');
 
-            const validTransaction = response.find((transaction: Transaction) =>
-                isValidTransaction(transaction)
-            );
+                // Chỉ confirm booking
+                await confirmBooking();
+                console.log('Booking confirmed successfully');
 
-            if (validTransaction) {
-                setPaymentStatus(PaymentStatus.PROCESSING);
+                // Set success status - bill sẽ được tạo trong useEffect
+                setPaymentStatus(PaymentStatus.SUCCESS);
 
-                // Xử lý trong 3 giây
-                processingTimeoutRef.current = setTimeout(async () => {
-                    try {
-                        await confirmBooking();
-                        await createBillRecord();
-                        setPaymentStatus(PaymentStatus.SUCCESS);
+                // Clear localStorage
+                if (currentShowtime?._id) {
+                    localStorage.removeItem(`bookingData_${currentShowtime._id}`);
+                    localStorage.removeItem(`selectedCombos_${currentShowtime._id}`);
+                }
 
-                        // Clear booking data from localStorage
-                        if (currentShowtime?._id) {
-                            localStorage.removeItem(`bookingData_${currentShowtime._id}`);
-                        }
-                    } catch (error) {
-                        console.error('Payment processing failed:', error);
-                        setPaymentStatus(PaymentStatus.FAILED);
-                        setErrorMessage('Có lỗi xảy ra khi xử lý thanh toán.');
-                    }
-                }, 3000);
+                console.log('Payment processing completed successfully');
+            } catch (error: any) {
+                console.error('Payment processing failed:', error);
+                setPaymentStatus(PaymentStatus.FAILED);
+                setErrorMessage(error.message || 'Có lỗi xảy ra khi xử lý thanh toán.');
             }
-        } catch (error) {
-            console.error('Payment check failed:', error);
-            setErrorMessage('Có lỗi xảy ra khi kiểm tra thanh toán.');
-        } finally {
-            setIsChecking(false);
-        }
-    }, [paymentStatus, isValidTransaction, confirmBooking, createBillRecord, currentShowtime]);
+        }, 3000);
+    }, [confirmBooking, currentShowtime]);
 
-    // Auto check payment every 10 seconds
+    // Tạo bill khi payment status thành SUCCESS
     useEffect(() => {
-        if (paymentStatus === PaymentStatus.WAITING && selectedSeat.length > 0 && content) {
-            checkPaymentStatus();
-            checkIntervalRef.current = setInterval(checkPaymentStatus, 10000);
-        }
-
-        return () => {
-            if (checkIntervalRef.current) {
-                clearInterval(checkIntervalRef.current);
-            }
-            if (processingTimeoutRef.current) {
-                clearTimeout(processingTimeoutRef.current);
+        const createBillWhenSuccess = async () => {
+            if (paymentStatus === PaymentStatus.SUCCESS && createdBookingId && !billData) {
+                try {
+                    console.log('Payment successful, creating bill...');
+                    await createBillAndItems();
+                    console.log('Bill created successfully after payment success');
+                } catch (error) {
+                    console.error('Failed to create bill after payment success:', error);
+                    setErrorMessage('Thanh toán thành công nhưng không thể tạo hóa đơn. Vui lòng liên hệ hỗ trợ.');
+                }
             }
         };
-    }, [paymentStatus, selectedSeat.length, content, checkPaymentStatus]);
 
-    // Create pending booking when component mounts
+        createBillWhenSuccess();
+    }, [paymentStatus, createdBookingId, billData, createBillAndItems]);
+
+    // Create pending booking when ready
     useEffect(() => {
         if (selectedSeat.length > 0 && bookingData && !createdBookingId) {
             createPendingBooking();
         }
     }, [selectedSeat, bookingData, createPendingBooking, createdBookingId]);
 
-    // Handle component unmount - cancel booking if not successful
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
+            if (processingTimeoutRef.current) {
+                clearTimeout(processingTimeoutRef.current);
+            }
             if (createdBookingId && paymentStatus !== PaymentStatus.SUCCESS) {
                 cancelBooking();
             }
         };
     }, [createdBookingId, paymentStatus, cancelBooking]);
 
-    // Reset payment process
+    // Reset payment
     const handleReset = (): void => {
         setPaymentStatus(PaymentStatus.WAITING);
         setErrorMessage('');
-        setTransactions([]);
         setBillData(null);
-
         const newContent = randomContent();
         setContent(newContent);
     };
 
-    // Render payment status under QR code
-    const renderPaymentStatusIndicator = () => {
-        switch (paymentStatus) {
-            case PaymentStatus.WAITING:
-                return (
-                    <div className="text-center mt-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                            {isChecking && (
-                                <Spinner size="sm" color="primary" className="me-2" />
-                            )}
-                            <span className="text-muted">
-                                {isChecking ? 'Đang kiểm tra giao dịch...' : 'Chờ thanh toán'}
-                            </span>
-                        </div>
-                    </div>
-                );
-
-            case PaymentStatus.PROCESSING:
-                return (
-                    <div className="text-center mt-3">
-                        <div className="d-flex align-items-center justify-content-center">
-                            <Spinner size="sm" color="warning" className="me-2" />
-                            <span className="text-warning fw-bold">Đang xử lý thanh toán...</span>
-                        </div>
-                    </div>
-                );
-
-            case PaymentStatus.SUCCESS:
-                return (
-                    <div className="text-center mt-3">
-                        <div className="text-success fw-bold">
-                            ✅ Thanh toán thành công!
-                        </div>
-                    </div>
-                );
-
-            case PaymentStatus.FAILED:
-                return (
-                    <div className="text-center mt-3">
-                        <div className="text-danger fw-bold mb-2">
-                            ❌ Thanh toán thất bại
-                        </div>
-                        <div className="text-danger small mb-2">{errorMessage}</div>
-                        <Button color="primary" size="sm" onClick={handleReset}>
-                            Thử lại
-                        </Button>
-                    </div>
-                );
-
-            default:
-                return null;
-        }
+    const handleDataFromChild = (data: PaymentStatus) => {
+        setPaymentStatus(data);
     };
 
-    // Hiển thị hóa đơn khi thanh toán thành công
-    if (paymentStatus === PaymentStatus.SUCCESS && billData) {
+    // Show bill if payment successful
+    if (paymentStatus === PaymentStatus.SUCCESS) {
         return <Bill bill={billData} booking={createdBookingId} />;
     }
 
@@ -344,8 +358,17 @@ const Payment: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Payment Status Indicator */}
-                            {renderPaymentStatusIndicator()}
+                            {/* Payment Checker Component */}
+                            <PaymentChecker
+                                totalAmount={getTotalPrice()}
+                                transferContent={content}
+                                paymentStatus={paymentStatus}
+                                isChecking={isChecking}
+                                onStatusChange={handleDataFromChild}
+                                onCheckingChange={setIsChecking}
+                                onTransactionFound={handleTransactionFound}
+                                onError={setErrorMessage}
+                            />
 
                             {/* Payment Information */}
                             <div className="payment-info mb-4 mt-4">
@@ -353,7 +376,7 @@ const Payment: React.FC = () => {
                                     <Col sm={6}>
                                         <p><strong>Tổng tiền:</strong></p>
                                         <h5 className="text-primary">
-                                            {getTotalPrice(selectedSeat).toLocaleString('vi-VN')} VNĐ
+                                            {getTotalPrice().toLocaleString('vi-VN')} VNĐ
                                         </h5>
                                     </Col>
                                     <Col sm={6}>
@@ -361,6 +384,20 @@ const Payment: React.FC = () => {
                                         <p>{bookingData.selectedSeats.join(', ')}</p>
                                     </Col>
                                 </Row>
+
+                                {selectedCombos.length > 0 && (
+                                    <Row className="mt-3">
+                                        <Col>
+                                            <p><strong>Combo đã chọn:</strong></p>
+                                            {selectedCombos.map((combo, index) => (
+                                                <div key={index} className="mb-1">
+                                                    <span className="badge bg-info me-2">{combo.quantity}x</span>
+                                                    {combo.name} - {(combo.price * combo.quantity).toLocaleString('vi-VN')} VNĐ
+                                                </div>
+                                            ))}
+                                        </Col>
+                                    </Row>
+                                )}
 
                                 <div className="mt-3">
                                     <p><strong>Nội dung chuyển khoản:</strong></p>
@@ -370,34 +407,14 @@ const Payment: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Manual Check Button (chỉ hiện khi cần) */}
-                            {paymentStatus === PaymentStatus.WAITING && !isChecking && (
+                            {/* Error handling */}
+                            {paymentStatus === PaymentStatus.FAILED && (
                                 <div className="text-center mt-3">
-                                    <Button
-                                        color="outline-primary"
-                                        size="sm"
-                                        onClick={checkPaymentStatus}
-                                    >
-                                        Kiểm tra ngay
+                                    <div className="text-danger small mb-2">{errorMessage}</div>
+                                    <Button color="primary" size="sm" onClick={handleReset}>
+                                        Thử lại
                                     </Button>
                                 </div>
-                            )}
-
-                            {/* Transaction History (ẩn bớt, chỉ hiện khi có lỗi hoặc cần debug) */}
-                            {transactions.length > 0 && paymentStatus === PaymentStatus.FAILED && (
-                                <details className="mt-4">
-                                    <summary className="text-muted small">Xem giao dịch gần nhất</summary>
-                                    <div className="mt-2">
-                                        {transactions.map((transaction, index) => (
-                                            <div key={index} className="border rounded p-2 mb-2 small">
-                                                <div><strong>Mã GD:</strong> {transaction['Mã GD']}</div>
-                                                <div><strong>Số tiền:</strong> {transaction['Giá trị'].toLocaleString('vi-VN')} VNĐ</div>
-                                                <div><strong>Thời gian:</strong> {transaction['Ngày diễn ra']}</div>
-                                                <div><strong>Mô tả:</strong> {transaction['Mô tả']}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </details>
                             )}
                         </CardBody>
                     </Card>

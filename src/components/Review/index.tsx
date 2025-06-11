@@ -241,6 +241,9 @@ const Review: React.FC<ReviewProps> = ({ movieId, currentUser }) => {
                                 icon={!currentUser.image && <UserOutlined />}
                                 size={40}
                             />
+
+                            <p>{currentUser.lastName + '' + currentUser.firstName}</p>
+
                             <div
                                 className="write-placeholder"
                                 onClick={() => setShowWriteReview(true)}

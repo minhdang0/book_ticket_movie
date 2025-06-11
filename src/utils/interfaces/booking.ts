@@ -7,5 +7,4 @@ export interface IBooking {
     total_price?: number;
     booking_status?: string,
     voucher?: string;
-
 }

@@ -110,7 +110,6 @@ const MovieCard: React.FC<Props> = ({ movie }) => {
     setSelectedTime(show.time);
     dispatch(setCurrentShowtime(show));
     if (show.room_id) {
-      console.log(show.room_id)
       dispatch(setSelectedRoom(show.room_id));
     } else {
       console.warn("Showtime không có room_id!");
