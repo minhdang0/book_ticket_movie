@@ -9,6 +9,8 @@ import { getAllMovies, getMovieByCinema } from '../../features/movie/movieAsync'
 import { useSelector } from 'react-redux';
 import styles from './Home.module.scss';
 import billService from '../../services/billService';
+import Loading from '../../components/Loading/Loading';
+import useCurrentUser from '../../hooks/useCurrentUser';
 
 type MovieStats = {
   name: string;
@@ -18,8 +20,11 @@ type MovieStats = {
 const Home: React.FC = () => {
   const { selectedCinema } = useSelector((state: RootState) => state.cinema);
   const { movies, moviesCinema, loading, error } = useSelector((state: RootState) => state.movie);
-  const dispatch = useDispatch<AppDispatch>();
+  const [isLoadingStats, setIsLoadingStats] = useState(true); // Loading riêng cho stats
   const [movieStats, setMovieStats] = useState<MovieStats[]>([]);
+  const [displayMovies, setDisplayMovies] = useState<any[]>([]); // State cho movies đã được sắp xếp
+  const currentUser = useCurrentUser();
+  const dispatch = useDispatch<AppDispatch>();
 
   // Hàm sắp xếp phim theo movieStats
   const sortMoviesByStats = (movies: any[], stats: { name: string, count: number }[]) => {
@@ -43,53 +48,52 @@ const Home: React.FC = () => {
 
     return sortedMovies;
   };
-
-
+  console.log(movieStats)
+  // Load movie stats
   useEffect(() => {
     (async () => {
+      setIsLoadingStats(true);
       try {
-        const movieStats = await billService.getMoiveStats();
-        console.log('Movie Stats:', movieStats); // Debug
+        const movieStats = await billService.getMovieRecommendations(currentUser._id);
+        console.log('Movie Stats:', movieStats)
+
         setMovieStats(movieStats);
       } catch (error) {
         console.log('Error fetching movie stats:', error);
+      } finally {
+        setIsLoadingStats(false);
       }
     })();
-  }, []); // Thêm dependency array rỗng
+  }, []);
 
-  // Load all movies on component mount
   useEffect(() => {
     dispatch(getAllMovies());
   }, [dispatch]);
 
-  // Load movies by cinema when selectedCinema changes
   useEffect(() => {
     if (selectedCinema) {
       dispatch(getMovieByCinema(selectedCinema));
     }
   }, [selectedCinema, dispatch]);
 
-  // Determine which movies to display và sắp xếp theo stats
-  const baseMovies = selectedCinema && moviesCinema?.length > 0
-    ? moviesCinema
-    : movies || [];
+  useEffect(() => {
+    if (!isLoadingStats) {
+      const baseMovies = selectedCinema && moviesCinema?.length > 0
+        ? moviesCinema
+        : movies || [];
 
-  // Sắp xếp phim theo thống kê
-  const displayMovies = sortMoviesByStats(baseMovies, movieStats);
+      const sortedMovies = sortMoviesByStats(baseMovies, movieStats);
+      setDisplayMovies(sortedMovies);
+    }
+  }, [movies, moviesCinema, selectedCinema, movieStats, isLoadingStats]);
 
-  // Debug log
-  // useEffect(() => {
-  //   if (movieStats.length > 0 && displayMovies.length > 0) {
-  //     console.log('Original movies:', baseMovies.map(m => m.name));
-  //     console.log('Movie stats order:', movieStats.map(stat => Object.keys(stat)[0]));
-  //     console.log('Sorted movies:', displayMovies.map(m => m.name));
-  //   }
-  // }, [movieStats, displayMovies]);
-
-  if (loading) {
+  if (loading || isLoadingStats) {
     return (
       <Container>
-        <div className="text-center p-4">Đang tải phim...</div>
+        <div className="text-center p-4">
+          {loading && <Loading />}
+          {isLoadingStats && <Loading />}
+        </div>
       </Container>
     );
   }
@@ -107,10 +111,14 @@ const Home: React.FC = () => {
       <Row>
         <Slider />
       </Row>
-      <Row >
+      <Row>
         <Col lg='12'>
           <h1 className={styles.title}>Được xem nhiều nhất</h1>
-          <MovieList movies={displayMovies} />
+          {displayMovies.length > 0 ? (
+            <MovieList movies={displayMovies} />
+          ) : (
+            <div className="text-center p-4">Không có phim nào để hiển thị</div>
+          )}
         </Col>
       </Row>
     </Container>

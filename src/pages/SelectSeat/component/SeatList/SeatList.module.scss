@@ -24,12 +24,23 @@
     .available {
         background-color: #c2c2c2;
     }
+
+    .vip {
+        background-color: #ffd700; // Màu vàng cho ghế VIP
+    }
+
     .selected {
         background-color: #003f87;
     }
-    .reserved {
-        background-color: #33ccff;
+
+    .selecting {
+        background-color: #a8d8ea; // Màu xanh nhạt cho ghế đang được chọn
     }
+
+    .couple {
+        background-color: #ff3399; // Màu hồng cho ghế đôi
+    }
+
     .sold {
         background-color: #ff3333;
     }
@@ -65,18 +76,49 @@
     background-color: #c2c2c2;
     cursor: pointer;
     transition: all 0.2s;
+
+    // QUAN TRỌNG: Đặt .selecting lên trên để có priority cao hơn
     &.selecting {
-        background-color: #a8d8ea; // Màu xanh nhạt
-        color: #2c5282;
-        border: 2px solid #63b3ed;
-        cursor: not-allowed;
+        background-color: #a8d8ea !important; // Thêm !important để override
+        color: #2c5282 !important;
+        border: 2px solid #63b3ed !important;
+        cursor: not-allowed !important;
         opacity: 0.8;
 
         &:hover {
-            background-color: #a8d8ea; // Giữ nguyên màu khi hover
-            transform: none; // Không có hiệu ứng hover
+            background-color: #a8d8ea !important; // Giữ nguyên màu khi hover
+            transform: none !important; // Không có hiệu ứng hover
         }
     }
+
+    &.vip {
+        background-color: #ffd700;
+        color: #333;
+        border: 2px solid #ffcc00;
+        box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+
+        &:hover:not(:disabled) {
+            background-color: #ffcc00;
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(255, 215, 0, 0.5);
+        }
+
+        &.selected {
+            background-color: #003f87;
+            color: white;
+            border: 2px solid #003f87;
+        }
+
+        // VIP nhưng đang được chọn bởi người khác
+        &.selecting {
+            background-color: #a8d8ea !important;
+            color: #2c5282 !important;
+            border: 2px solid #63b3ed !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+        }
+    }
+
     &.selected {
         background-color: #003f87;
         color: white;
@@ -105,9 +147,25 @@
     &.couple {
         width: 76px;
         background-color: #ff3399;
+
+        &.vip {
+            background-color: #ffd700;
+            border: 2px solid #ffcc00;
+        }
+
+        // Ghế đôi đang được chọn bởi người khác
+        &.selecting {
+            background-color: #a8d8ea !important;
+            color: #2c5282 !important;
+            border: 2px solid #63b3ed !important;
+        }
+    }
+
+    &.loading {
+        opacity: 0.5;
+        cursor: wait;
     }
 }
-
 .summary {
     font-size: 16px;
     line-height: 2;
@@ -121,4 +179,34 @@
         flex: 1;
         min-width: 200px;
     }
+}
+
+.timeSection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.extendButton {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+
+    &:hover {
+        background-color: #0056b3;
+    }
+
+    &:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+}
+
+.loadingText {
+    color: #007bff;
+    font-weight: bold;
 }

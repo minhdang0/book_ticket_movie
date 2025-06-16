@@ -61,6 +61,16 @@ export const updateUser = async (id: string, data: object) => {
     const response = await httpRequest.put(`/users/${id}_method=PUT`, data);
     return response;
 }
+
+export const verifyRegistration = async (data: object) => {
+    const response: any = await httpRequest.post('/verify-registration', data);
+    return response.data;
+};
+
+export const resendOTP = async (data: object) => {
+    const response: any = await httpRequest.post('/resend-otp', data);
+    return response.data;
+};
 export default {
     currentUser,
     login,

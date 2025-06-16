@@ -1,9 +1,8 @@
 import * as httpRequest from '../utils/api/httpRequests';
 import { ISession } from '../utils/interfaces/sessions';
 
-
 class SeatSessionService {
-    // Base URL cho seat session API
+    // Base URL cho seat session API 
 
     // Chọn ghế
     async selectSeats(data: ISession) {
@@ -13,9 +12,10 @@ class SeatSessionService {
                 seatIds: data.seatIds,
                 sessionId: data.sessionId
             });
-            return response.data;
+            // FIX: Trả về toàn bộ response thay vì chỉ response.data
+            return response;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
@@ -27,9 +27,10 @@ class SeatSessionService {
                 seatIds: data.seatIds,
                 sessionId: data.sessionId
             });
-            return response.data;
+            // FIX: Trả về toàn bộ response thay vì chỉ response.data
+            return response;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
@@ -42,7 +43,7 @@ class SeatSessionService {
             });
             return response.data;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
@@ -52,7 +53,7 @@ class SeatSessionService {
             const response = await httpRequest.get(`/sessions/validate/${sessionId}/${showtimeId}`);
             return response.data;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
@@ -66,7 +67,7 @@ class SeatSessionService {
             });
             return response.data;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
@@ -79,7 +80,7 @@ class SeatSessionService {
             });
             return response.data;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
@@ -89,36 +90,30 @@ class SeatSessionService {
             const response = await httpRequest.post(`/sessions/cleanup`, null);
             return response.data;
         } catch (error) {
-            throw this.handleError(error);
+            return this.handleError(error);
         }
     }
 
-    // Error handler
-    handleError(error: any) {
+    // Error handler - FIX: Return object thay vì throw Error
+    handleError(error: any): { success: boolean; message: string } {
         if (error.response) {
-            // Server responded with error status
             return {
                 success: false,
-                message: error.response.data?.message || 'Có lỗi xảy ra',
-                statusCode: error.response.status,
-                data: error.response.data
+                message: error.response.data?.message || 'Có lỗi xảy ra'
             };
         } else if (error.request) {
-            // Request was made but no response received
             return {
                 success: false,
-                message: 'Không thể kết nối đến server',
-                statusCode: 0
+                message: 'Không thể kết nối đến server'
             };
         } else {
-            // Something else happened
             return {
                 success: false,
-                message: error.message || 'Lỗi không xác định',
-                statusCode: 0
+                message: error.message || 'Lỗi không xác định'
             };
         }
     }
 }
+
 const seatSessionService = new SeatSessionService();
 export default seatSessionService;

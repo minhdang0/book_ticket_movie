@@ -1,16 +1,36 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
 import styles from './SeatList.module.scss';
 import { ISeat } from '../../../../utils/interfaces/seat';
+import billService from '../../../../services/billService';
+import seatApiService from '../../../../services/seatApiService';
+import socketService from '../../../../services/socketService';
 import {
-    addLocalSeatSession,
-    removeLocalSeatSession,
-    cleanExpiredSessions,
-    clearLocalSessions
-} from '../../../../features/showtime/showtimeSlice';
-import { AppDispatch } from '../../../../store';
-import seatSessionService from '../../../../services/sessionService';
-import SocketService from '../../../../services/socketService';
+    useSeatSelection,
+    useSocketConnection,
+    useSeatPolling,
+    useSessionManagement,
+    useLocalStorage
+} from '../../../../hooks/useSeatSelection';
+import Loading from '../../../../components/Loading/Loading';
+
+interface IProduct {
+    type: string;
+    seat_number?: string;
+    name?: string;
+    quantity?: number;
+    price?: number;
+}
+
+interface IBillState {
+    id: string;
+    user_id: string;
+    showtime_id: string;
+    total: number;
+    payment_method: string;
+    created_at: string;
+    updated_at: string;
+    product_list: IProduct[];
+}
 
 type Props = {
     selectedSeats: string[];
@@ -25,345 +45,125 @@ const SeatList: React.FC<Props> = memo(({
     seats,
     showtimeId
 }) => {
-    const [countdown, setCountdown] = useState<number>(600);
-    const [occupiedSeats, setOccupiedSeats] = useState(new Set<string>());
-    const [sessionId] = useState<string>(() => `session_${Date.now()}_${Math.random()}`);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    // Use custom hooks
+    const {
+        occupiedSeats,
+        setOccupiedSeats,
+        isLoading,
+        setIsLoading,
+        sessionId,
+        dispatch
+    } = useSeatSelection(showtimeId);
+    const [loading, setLoading] = useState<Boolean>(false);
+    // Socket connection hook
+    const { isConnected } = useSocketConnection(showtimeId, sessionId, setOccupiedSeats);
 
+    // Seat polling hook
+    const { pollOccupiedSeats } = useSeatPolling(showtimeId, sessionId, setOccupiedSeats);
+
+    // Session management hook
+    const {
+        countdown,
+        setCountdown,
+        restoreSessionFromServer,
+        clearSession,
+    } = useSessionManagement(
+        showtimeId,
+        sessionId,
+        selectedSeats,
+        setSelectedSeats,
+        seats,
+        dispatch
+    );
+
+    // Local storage hook
+    const { getSeatIds, restoreFromLocalStorage } = useLocalStorage(
+        showtimeId,
+        sessionId,
+        selectedSeats,
+        seats
+    );
+
+    // Component specific state
+    const [bookedSeatsFromBills, setBookedSeatsFromBills] = useState<Set<string>>(new Set());
     const markTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const prevShowtimeIdRef = useRef<string>(showtimeId);
 
-    const dispatch = useDispatch<AppDispatch>();
-    console.log(seats)
-    // Tạo storage key unique cho showtime
-    const getStorageKey = (key: string) => `${key}_${showtimeId}`;
+    // Load booked seats from bills
+    useEffect(() => {
+        const loadBooked = async () => {
+            setLoading(true);
+            try {
+                const allBills: any = await billService.getAll();
+                const booked = allBills
+                    .filter((b: IBillState) => b.showtime_id === showtimeId)
+                    .flatMap((b: IBillState) => b.product_list
+                        .filter((p: any) => p.type === 'seat')
+                        .map(p => p.seat_number));
+                setBookedSeatsFromBills(new Set(booked));
+            } catch (err) {
+                console.error('Không tải được bills:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadBooked();
 
+        return () => {
+            setBookedSeatsFromBills(new Set());
+        };
+    }, [showtimeId]);
+
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
             const allowedPaths = ['/payment', '/select-seat'];
             const currentPath = location.pathname || window.location.pathname;
-
-            // Nếu KHÔNG ở trong trang được phép giữ ghế thì mới clear
             const shouldClear = !allowedPaths.some(path => currentPath.startsWith(path));
 
             if (shouldClear) {
-                seatSessionService.clearSession(sessionId, showtimeId).catch(console.error);
-                localStorage.removeItem(getStorageKey('bookingData'));
+                seatApiService.clearSession(sessionId, showtimeId).catch(console.error);
+                localStorage.removeItem(`bookingData_${showtimeId}`);
                 setSelectedSeats([]);
             }
         };
-    }, [showtimeId, sessionId]);
-    useEffect(() => {
-        const handleSeatSelected = (data: { seatId: string; showtimeId: string; sessionId: string }) => {
-            if (data.showtimeId === showtimeId && data.sessionId !== sessionId) {
-                setOccupiedSeats(prev => new Set([...prev, data.seatId]));
-            }
-        };
+    }, [showtimeId, sessionId, setSelectedSeats]);
 
-        const handleSeatUnselected = (data: { seatId: string; showtimeId: string }) => {
-            if (data.showtimeId === showtimeId) {
-                setOccupiedSeats(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(data.seatId);
-                    return newSet;
-                });
-            }
-        };
-
-        const handleSessionCleared = (data: { seatIds: string[]; showtimeId: string }) => {
-            if (data.showtimeId === showtimeId) {
-                setOccupiedSeats(prev => {
-                    const newSet = new Set(prev);
-                    data.seatIds.forEach(seatId => newSet.delete(seatId));
-                    return newSet;
-                });
-            }
-        };
-
-        SocketService.on('seat:selected', handleSeatSelected);
-        SocketService.on('seat:unselected', handleSeatUnselected);
-        SocketService.on('seat:cleared', handleSessionCleared);
-
-        return () => {
-            SocketService.off('seat:selected', handleSeatSelected);
-            SocketService.off('seat:unselected', handleSeatUnselected);
-            SocketService.off('seat:cleared', handleSessionCleared);
-        };
-    }, [showtimeId, sessionId]);
-    // FIX 1: Cải thiện hàm pollOccupiedSeats với error handling tốt hơn
-    const pollOccupiedSeats = async () => {
-        try {
-            console.log('Polling occupied seats for showtime:', showtimeId, 'with sessionId:', sessionId);
-
-            const response = await seatSessionService.getActiveSeatsForShowtime(showtimeId, sessionId);
-
-            if (response && response.success && response.data) {
-                // Đảm bảo occupiedSeats là array trước khi map
-                const occupiedSeatsData = Array.isArray(response.data.occupiedSeats)
-                    ? response.data.occupiedSeats
-                    : [];
-
-                const occupiedSeatIds = new Set<string>(
-                    occupiedSeatsData
-                        .map((seat: any) => seat.seatId || seat._id || seat.id)
-                        .filter((id: any) => id) // Loại bỏ undefined/null
-                );
-
-                console.log('Occupied seat IDs:', Array.from(occupiedSeatIds));
-                setOccupiedSeats(occupiedSeatIds);
-            } else {
-                console.warn('Invalid response from getActiveSeatsForShowtime:', response);
-                // Không reset occupied seats khi response không hợp lệ để tránh flickering
-            }
-        } catch (error: any) {
-            console.error('Error polling occupied seats:', error);
-            // Chỉ reset khi có lỗi nghiêm trọng
-            if (error instanceof TypeError || error?.message?.includes('network')) {
-                setOccupiedSeats(new Set());
-            }
-        }
-    };
-
-    // FIX 2: Cải thiện hàm updateSeatsOnServer
-    const updateSeatsOnServer = async (selectedSeatIds: string[], action: 'select' | 'unselect') => {
-        if (!selectedSeatIds || selectedSeatIds.length === 0) {
-            console.warn('No seat IDs provided for', action);
-            return;
-        }
-
-        // Validate seat IDs trước khi gửi
-        const validSeatIds = selectedSeatIds.filter(id => id && typeof id === 'string');
-        if (validSeatIds.length === 0) {
-            console.error('No valid seat IDs found:', selectedSeatIds);
-            throw new Error('Không có ghế hợp lệ để xử lý');
-        }
-
-        try {
-            setIsLoading(true);
-            console.log(`${action}ing seats:`, validSeatIds, 'for sessionId:', sessionId);
-
-            if (action === 'select') {
-                const response = await seatSessionService.selectSeats({
-                    showtimeId,
-                    seatIds: validSeatIds,
-                    sessionId
-                });
-                SocketService.emit('seat:selected', {
-                    seatIds: validSeatIds,
-                    showtimeId,
-                    sessionId
-                });
-
-                if (!response || !response.success) {
-                    throw new Error(response?.message || 'Không thể chọn ghế');
-                }
-
-                console.log('Select seats response:', response);
-            } else {
-                const response = await seatSessionService.unselectSeats({
-                    showtimeId,
-                    seatIds: validSeatIds,
-                    sessionId
-                });
-                SocketService.emit('seat:unselected', {
-                    seatIds: validSeatIds,
-                    showtimeId,
-                    sessionId
-                });
-                console.log('Unselect seats response:', response);
-            }
-
-            // Refresh occupied seats sau khi update
-            setTimeout(() => {
-                pollOccupiedSeats();
-            }, 500); // Delay nhỏ để server update
-
-        } catch (error) {
-            console.error(`Error ${action}ing seats:`, error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // FIX 3: Cải thiện hàm getSeatIds
-    const getSeatIds = (seatNames: string[]): string[] => {
-        const seatIds = seatNames
-            .map(seatName => {
-                const seat = seats.find(s => s.name === seatName);
-                if (!seat || !seat._id) {
-                    console.warn('Seat not found or missing ID for:', seatName);
-                    return null;
-                }
-                return seat._id;
-            })
-            .filter((id): id is string => Boolean(id));
-
-        console.log('Converting seat names to IDs:', seatNames, '->', seatIds);
-        return seatIds;
-    };
+    // Initialize socket connection and restore session
+    console.log(showtimeId, sessionId)
 
     useEffect(() => {
-        sessionStorage.setItem('currentShowtimeId', showtimeId);
-    }, [showtimeId]);
-
-    useEffect(() => {
-        return () => {
-            seatSessionService.clearSession(sessionId, showtimeId).catch(console.error);
-        };
-    }, [showtimeId, sessionId]);
-
-    // Reset state khi đổi showtime
-    useEffect(() => {
-        if (prevShowtimeIdRef.current !== showtimeId) {
-            console.log('Showtime changed, resetting states...');
-
-            setSelectedSeats([]);
-            setOccupiedSeats(new Set());
-            setIsLoading(false);
-            setCountdown(600);
-
-            if (markTimeoutRef.current) {
-                clearTimeout(markTimeoutRef.current);
-                markTimeoutRef.current = null;
-            }
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-                pollIntervalRef.current = null;
-            }
-
-            const oldStorageKey = `bookingData_${prevShowtimeIdRef.current}`;
-            localStorage.removeItem(oldStorageKey);
-
-            prevShowtimeIdRef.current = showtimeId;
-        }
-    }, [showtimeId, setSelectedSeats]);
-
-    // Khôi phục session từ server
-    const restoreSessionFromServer = async () => {
-        try {
-            const response = await seatSessionService.validateSession(sessionId, showtimeId);
-            if (response && response.success && response.data && response.data.isValid) {
-                const selectedSeatsData = Array.isArray(response.data.selectedSeats)
-                    ? response.data.selectedSeats
-                    : [];
-
-                const seatNames = selectedSeatsData
-                    .map((seat: any) => {
-                        const seatObj = seats.find(s => s._id === (seat.seatId || seat._id || seat.id));
-                        return seatObj?.name;
-                    })
-                    .filter(Boolean);
-
-                if (seatNames.length > 0) {
-                    setSelectedSeats(seatNames);
-
-                    seatNames.forEach((seatName: string) => {
-                        const seat = seats.find(s => s.name === seatName);
-                        if (seat) {
-                            dispatch(addLocalSeatSession({
-                                seatId: seat._id,
-                                seatName: seat.name,
-                                showtimeId,
-                                sessionId,
-                                selectedAt: Date.now(),
-                                expiresAt: new Date(response.data.expiresAt).getTime()
-                            }));
-                        }
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('Error restoring session:', error);
-        }
-    };
-
-    // Khôi phục từ localStorage
-    const restoreFromLocalStorage = () => {
-        const storedData = localStorage.getItem(getStorageKey('bookingData'));
-        if (storedData) {
+        const initializeConnection = async () => {
             try {
-                const data = JSON.parse(storedData);
-                const timeDiff = Date.now() - data.timestamp;
-
-                if (timeDiff < 600000 &&
-                    data.sessionId === sessionId &&
-                    data.showtimeId === showtimeId) {
-
-                    const availableSeats = data.selectedSeats.filter((seatName: string) => {
-                        const seat = seats.find(s => s.name === seatName);
-                        return seat && !seat.isBooked && !occupiedSeats.has(seat._id);
-                    });
-
-                    if (availableSeats.length > 0) {
-                        setSelectedSeats(availableSeats);
-                    }
-                } else {
-                    localStorage.removeItem(getStorageKey('bookingData'));
+                // Connect socket if not connected
+                if (!socketService.connected) {
+                    await socketService.connect();
                 }
-            } catch (error) {
-                console.error('Error parsing stored booking data:', error);
-                localStorage.removeItem(getStorageKey('bookingData'));
-            }
-        }
-    };
+                // Join showtime room
+                await socketService.joinShowtime(showtimeId, sessionId);
 
-    // Setup polling và restore session
-    useEffect(() => {
-        const setupTimeout = setTimeout(() => {
-            setOccupiedSeats(new Set());
+                // Restore session from server first
+                await restoreSessionFromServer();
 
-            pollOccupiedSeats();
-
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-            }
-            pollIntervalRef.current = setInterval(pollOccupiedSeats, 5000);
-
-            restoreSessionFromServer().then(() => {
+                // If no seats restored from server, try localStorage
                 if (selectedSeats.length === 0) {
-                    restoreFromLocalStorage();
+                    const localData = restoreFromLocalStorage();
+                    if (localData && localData.selectedSeats) {
+                        setSelectedSeats(localData.selectedSeats);
+                    }
                 }
-            });
-        }, 100);
 
-        return () => {
-            clearTimeout(setupTimeout);
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
+                // Start polling occupied seats
+                pollOccupiedSeats();
+            } catch (error) {
+                console.error('Failed to initialize connection:', error);
             }
         };
-    }, [showtimeId]);
 
-    // Cleanup expired sessions
-    useEffect(() => {
-        const cleanupInterval = setInterval(() => {
-            dispatch(cleanExpiredSessions());
-        }, 30000);
-
-        return () => clearInterval(cleanupInterval);
-    }, [dispatch]);
-
-    // LocalStorage management
-    useEffect(() => {
-        const selectedSeatIds = getSeatIds(selectedSeats);
-
-        if (selectedSeatIds.length > 0) {
-            const storageData = {
-                selectedSeats,
-                selectedSeatIds,
-                sessionId,
-                showtimeId,
-                timestamp: Date.now()
-            };
-            localStorage.setItem(getStorageKey('bookingData'), JSON.stringify(storageData));
-        } else {
-            localStorage.removeItem(getStorageKey('bookingData'));
-        }
-    }, [selectedSeats, seats, showtimeId, sessionId]);
-
-    // FIX 4: Cải thiện debounced seat selection
+        const timeoutId = setTimeout(initializeConnection, 100);
+        return () => clearTimeout(timeoutId);
+    }, [showtimeId, sessionId]);
+    console.log(seats)
+    // Debounced seat selection with seatApiService
     useEffect(() => {
         if (markTimeoutRef.current) {
             clearTimeout(markTimeoutRef.current);
@@ -380,24 +180,31 @@ const SeatList: React.FC<Props> = memo(({
             }
 
             try {
-                await updateSeatsOnServer(selectedSeatIds, 'select');
+                setIsLoading(true);
 
-                selectedSeats.forEach(seatName => {
-                    const seat = seats.find(s => s.name === seatName);
-                    if (seat) {
-                        dispatch(addLocalSeatSession({
-                            seatId: seat._id,
-                            seatName: seat.name,
-                            showtimeId,
-                            sessionId,
-                            selectedAt: Date.now(),
-                            expiresAt: Date.now() + 600000
-                        }));
-                    }
+                // Use seatApiService to select seats
+                const result = await seatApiService.selectSeats({
+                    showtimeId,
+                    seatIds: selectedSeatIds,
+                    sessionId
                 });
+
+                // THAY ĐỔI: Cập nhật occupiedSeats từ response
+                if (result.occupiedSeatIds && Array.isArray(result.occupiedSeatIds)) {
+                    setOccupiedSeats(new Set(result.occupiedSeatIds));
+                }
+
+                // Refresh occupied seats after selection
+                setTimeout(() => {
+                    pollOccupiedSeats();
+                }, 500);
+
             } catch (error) {
                 console.error('Failed to select seats:', error);
-                // Có thể thêm toast notification ở đây
+                // Revert selection on error
+                setSelectedSeats([]);
+            } finally {
+                setIsLoading(false);
             }
         }, 1000);
 
@@ -406,83 +213,86 @@ const SeatList: React.FC<Props> = memo(({
                 clearTimeout(markTimeoutRef.current);
             }
         };
-    }, [selectedSeats, seats, showtimeId, sessionId, dispatch]);
+    }, [selectedSeats, getSeatIds, showtimeId, sessionId, setIsLoading, pollOccupiedSeats, setSelectedSeats, setOccupiedSeats]);
 
+    // Toggle seat selection
     const toggleSeat = async (seatName: string) => {
-        if (isLoading) return;
+        if (isLoading || seatApiService.loading) return;
 
         const selectedSeat = seats.find(seat => seat.name === seatName);
         if (!selectedSeat || selectedSeat.isBooked) return;
 
+        // Check if seat is occupied by others
         if (occupiedSeats.has(selectedSeat._id)) {
             return;
         }
 
-        if (selectedSeat.isSelecting && !selectedSeats.includes(seatName)) {
-            return;
-        }
-
         const isCurrentlySelected = selectedSeats.includes(seatName);
-        let updatedSelectedSeats = [...selectedSeats];
 
         if (isCurrentlySelected) {
-            updatedSelectedSeats = updatedSelectedSeats.filter(name => name !== seatName);
-            setSelectedSeats(updatedSelectedSeats);
-
+            // Unselect seat
             try {
-                await updateSeatsOnServer([selectedSeat._id], 'unselect');
-                dispatch(removeLocalSeatSession({ seatId: selectedSeat._id, showtimeId }));
+                setIsLoading(true);
+
+                await seatApiService.unselectSeats({
+                    showtimeId,
+                    seatIds: [selectedSeat._id],
+                    sessionId
+                });
+
+                const updatedSeats = selectedSeats.filter(name => name !== seatName);
+                setSelectedSeats(updatedSeats);
+
+                // Refresh occupied seats
+                setTimeout(() => {
+                    pollOccupiedSeats();
+                }, 500);
+
             } catch (error) {
-                setSelectedSeats(selectedSeats);
                 console.error('Failed to unselect seat:', error);
+            } finally {
+                setIsLoading(false);
             }
         } else {
-            updatedSelectedSeats.push(seatName);
-            setSelectedSeats(updatedSelectedSeats);
+            // Select seat - just update local state, server update handled by useEffect
+            const updatedSeats = [...selectedSeats, seatName];
+            setSelectedSeats(updatedSeats);
         }
     };
 
+    // Handle extend session
+    const handleExtendSession = async () => {
+        try {
+            setIsLoading(true);
+            const success = await seatApiService.extendSession(sessionId, showtimeId, 10);
+            if (success) {
+                setCountdown(600);
+                console.log('Session extended successfully');
+            }
+        } catch (error) {
+            console.error('Error extending session:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle clear session
+    const handleClearSession = async () => {
+        try {
+            await clearSession();
+        } catch (error) {
+            console.error('Error clearing session:', error);
+        }
+    };
+
+    // Auto clear when countdown reaches 0
     useEffect(() => {
         if (countdown === 0) {
             handleClearSession();
         }
     }, [countdown]);
 
-    const handleClearSession = async () => {
-        try {
-            await seatSessionService.clearSession(sessionId, showtimeId);
-            dispatch(clearLocalSessions({ showtimeId, sessionId }));
-            setSelectedSeats([]);
-            localStorage.removeItem(getStorageKey('bookingData'));
-        } catch (error) {
-            console.error('Error clearing session:', error);
-        }
-    };
-
-    const handleExtendSession = async () => {
-        try {
-            const response = await seatSessionService.extendSession(sessionId, showtimeId, 10);
-            if (response && response.success) {
-                setCountdown(600);
-                console.log('Session extended successfully');
-            }
-        } catch (error) {
-            console.error('Error extending session:', error);
-        }
-    };
-
-    const totalPrice = selectedSeats.reduce((sum, name) => {
-        const seat = seats.find(s => s.name === name);
-        return seat ? sum + seat.seatTypePrice : sum;
-    }, 0);
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCountdown(prev => (prev > 0 ? prev - 1 : 0));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
+    // Helper functions
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
@@ -501,12 +311,13 @@ const SeatList: React.FC<Props> = memo(({
         }));
     };
 
-    const groupedSeats = getRowsFromSeats();
-    const lastRow = groupedSeats[groupedSeats.length - 1]?.row;
-
     const getSeatStatus = (seat: ISeat) => {
         const isSelected = selectedSeats.includes(seat.name);
         const isOccupiedByOther = occupiedSeats.has(seat._id);
+
+        if (bookedSeatsFromBills.has(seat.name)) {
+            return { className: styles.sold, disabled: true, tooltip: 'Ghế đã bán' };
+        }
 
         if (seat.isBooked) {
             return { className: styles.sold, disabled: true, tooltip: 'Ghế đã bán' };
@@ -516,7 +327,7 @@ const SeatList: React.FC<Props> = memo(({
             return { className: styles.selected, disabled: false, tooltip: 'Ghế bạn đang chọn' };
         }
 
-        if (seat.isSelecting || isOccupiedByOther) {
+        if (isOccupiedByOther || seat.isSelecting === true) {
             return {
                 className: styles.selecting,
                 disabled: true,
@@ -527,25 +338,22 @@ const SeatList: React.FC<Props> = memo(({
         return { className: styles.available, disabled: false, tooltip: 'Ghế trống' };
     };
 
-    // Cleanup khi component unmount
-    useEffect(() => {
-        return () => {
-            if (selectedSeats.length > 0) {
-                seatSessionService.clearSession(sessionId, showtimeId).catch(console.error);
-            }
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-            }
-            if (markTimeoutRef.current) {
-                clearTimeout(markTimeoutRef.current);
-            }
-        };
-    }, []);
+    // Calculate total price
+    const totalPrice = selectedSeats.reduce((sum, name) => {
+        const seat = seats.find(s => s.name === name);
+        return seat ? sum + seat.seatTypePrice : sum;
+    }, 0);
+
+    const groupedSeats = getRowsFromSeats();
+    const lastRow = groupedSeats[groupedSeats.length - 1]?.row;
+
+    if (loading || isLoading) return <Loading />;
 
     return (
         <div className={styles.cinema}>
             <div className={styles.legend}>
                 <span className={`${styles.seat} ${styles.available}`} /> Ghế trống
+                <span className={`${styles.seat} ${styles.vip}`} /> Ghế VIP
                 <span className={`${styles.seat} ${styles.couple}`} /> Ghế đôi
                 <span className={`${styles.seat} ${styles.selected}`} /> Ghế đang chọn
                 <span className={`${styles.seat} ${styles.selecting}`} /> Đang được chọn
@@ -563,14 +371,15 @@ const SeatList: React.FC<Props> = memo(({
                     >
                         {group.seats.map(seat => {
                             const isCoupleSeat = isLastRow;
+                            const isVipSeat = seat.seatTypeName?.toLowerCase().includes('vip');
                             const seatStatus = getSeatStatus(seat);
 
                             return (
                                 <button
                                     key={seat._id}
-                                    className={`${styles.seat} ${seatStatus.className} ${isCoupleSeat ? styles.couple : ''} ${isLoading ? styles.loading : ''}`}
+                                    className={`${styles.seat} ${seatStatus.className} ${isCoupleSeat ? styles.couple : ''} ${isVipSeat ? styles.vip : ''} ${(isLoading || seatApiService.loading) ? styles.loading : ''}`}
                                     onClick={() => toggleSeat(seat.name)}
-                                    disabled={seatStatus.disabled || isLoading}
+                                    disabled={seatStatus.disabled || isLoading || seatApiService.loading}
                                     title={`${seat.name} - ${seat.seatTypeName} - ${seat.seatTypePrice.toLocaleString()} VND - ${seatStatus.tooltip}`}
                                 >
                                     {seat.name}
@@ -590,13 +399,18 @@ const SeatList: React.FC<Props> = memo(({
                         <button
                             className={styles.extendButton}
                             onClick={handleExtendSession}
-                            disabled={isLoading}
+                            disabled={isLoading || seatApiService.loading}
                         >
                             Gia hạn
                         </button>
                     )}
                 </div>
-                {isLoading && <div className={styles.loadingText}>Đang xử lý...</div>}
+                <div className={styles.connectionStatus}>
+                    Socket: {isConnected ? '🟢 Kết nối' : '🔴 Mất kết nối'}
+                </div>
+                {(isLoading || seatApiService.loading) && (
+                    <div className={styles.loadingText}>Đang xử lý...</div>
+                )}
             </div>
         </div>
     );

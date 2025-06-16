@@ -6,6 +6,7 @@ import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { useSelector } from 'react-redux';
 import { IUser } from '../../../utils/interfaces/user';
 import useLoadingUser from '../../../hooks/useLoadingUser';
+import Button from '../../../components/Button';
 
 const announcement = [
   'Phim bom tấn mới đổ bộ - Sẵn sàng bùng nổ màn ảnh!',
@@ -93,10 +94,10 @@ const Marquee: React.FC = () => {
 
       {userName ? loading ? <FontAwesomeIcon icon={faSpinner} spin /> : (
         <div className={styles.auth}>
-          <span onClick={handleProfileClick} style={{ cursor: 'pointer', color: 'blue' }}>
+          <span onClick={handleProfileClick}>
             Welcome, {userName}!
           </span>
-          <button onClick={handleLogout}>Logout</button>
+          <Button onClick={handleLogout}>Logout</Button>
         </div>
       ) : (
         <div className={styles.auth}>
@@ -105,8 +106,9 @@ const Marquee: React.FC = () => {
             <li><Link to="/register">Đăng ký</Link></li>
           </ul>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };
 

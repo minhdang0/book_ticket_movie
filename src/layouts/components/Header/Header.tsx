@@ -9,6 +9,7 @@ import { SearchContext } from "../../../contexts/SearchContext";
 import { useDispatch } from "react-redux";
 import { getMovieBySearch } from "../../../features/movie/movieAsync";
 import { setSelectedCinema } from "../../../features/cinema/cinemaSlice";
+import logo from '../../../../public/movie-image/logo.png';
 
 const Header: React.FC = () => {
   const dispatch = useDispatch();
@@ -63,7 +64,9 @@ const Header: React.FC = () => {
       <Marquee />
       <div className={`${styles.stickyHeader} ${isScrolled ? styles.scrolled : ""}`}>
         <div className={styles.header__content}>
-          <div>Logo</div>
+          <div className={styles.logo_container}>
+            <img src={logo} alt="logo" />
+          </div>
           <CinemaSelect onChange={(cinemaId) => setSelectedCinema(cinemaId)} />
           <Navigation />
           <SearchForm

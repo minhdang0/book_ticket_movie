@@ -1,0 +1,166 @@
+// Import font Oswald
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap");
+
+.wrapper {
+    display: flex;
+    height: 100%;
+    font-family: "Oswald", sans-serif !important;
+    line-height: 25px;
+    background-color: #f8f9fa;
+}
+
+.sideTab__list {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    min-width: 220px;
+    padding: 10px 0;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 10;
+}
+
+.btn__sideTab {
+    font-family: "Oswald", sans-serif !important;
+    background: transparent;
+    border: none;
+    padding: 15px 25px;
+    margin: 5px 15px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 15px;
+    font-weight: 500;
+    color: #6c757d;
+    border-radius: 8px;
+    position: relative;
+    outline: none;
+
+    &:hover {
+        background-color: #f1f3f4;
+        color: #495057;
+        transform: translateX(2px);
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: none;
+    }
+
+    span {
+        display: block;
+        font-family: "Oswald", sans-serif !important;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+}
+
+.active__btn {
+    background-color: #dd0000 !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.523);
+    transform: translateX(3px);
+
+    &::before {
+        content: "";
+        position: absolute;
+        left: -15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 70%;
+        background-color: #dd0000;
+        border-radius: 0 2px 2px 0;
+    }
+
+    &:hover {
+        background-color: #0056b3 !important;
+        color: white !important;
+        transform: translateX(3px);
+    }
+
+    span {
+        font-weight: 600;
+    }
+}
+
+.content_sideTab {
+    flex: 1;
+    padding: 30px;
+    background-color: white;
+    overflow-y: auto;
+    margin-left: -10px;
+    border-radius: 20px 0 0 0;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+// Alternative style - more modern
+.wrapper.modern {
+    .sideTab__list {
+        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    }
+
+    .btn__sideTab {
+        margin: 3px 10px;
+        border-radius: 12px;
+
+        &:hover {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+        }
+    }
+
+    .active__btn {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .wrapper {
+        flex-direction: column;
+    }
+
+    .sideTab__list {
+        flex-direction: row;
+        min-width: auto;
+        padding: 10px;
+        overflow-x: auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn__sideTab {
+        white-space: nowrap;
+        min-width: 120px;
+        margin: 0 5px;
+
+        &:hover {
+            transform: translateY(-2px);
+        }
+    }
+
+    .active__btn {
+        transform: translateY(-3px);
+
+        &::before {
+            left: 50%;
+            top: auto;
+            bottom: -10px;
+            transform: translateX(-50%);
+            width: 70%;
+            height: 3px;
+            border-radius: 2px 2px 0 0;
+        }
+
+        &:hover {
+            transform: translateY(-3px);
+        }
+    }
+
+    .content_sideTab {
+        margin-left: 0;
+        margin-top: -10px;
+        border-radius: 20px 20px 0 0;
+    }
+}

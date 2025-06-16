@@ -2,6 +2,13 @@ import * as httpRequest from "../utils/api/httpRequests";
 import { IBill } from "../utils/interfaces/bill";
 import bookingService from "./bookingService";
 
+
+//get all Bill
+const getAll = async (): Promise<IBill> => {
+    const response = await httpRequest.get('/bills');
+    return response.data;
+};
+
 // Tạo hóa đơn mới
 const createBill = async (data: IBill): Promise<IBill> => {
     const response = await httpRequest.post('/bills', data);
@@ -75,7 +82,19 @@ const getMoiveStats = async () => {
     const response = await httpRequest.get('/bills/movie-stats');
     return response.data;
 }
+
+const getMovieRecommendations = async (userID: string) => {
+    const res = await httpRequest.get(`/bills/recommended/${userID}`)
+    return res.data;
+}
+
+const getBillByUserId = async (userID: string) => {
+    const res = await httpRequest.get(`/bills/customer/${userID}`);
+    console.log(res)
+    return res.data;
+}
 export default {
+    getAll,
     createBill,
     createTickets,
     createFoods,
@@ -85,5 +104,7 @@ export default {
     getFoodsByBillId,
     getBookingById,
     getFullBillData,
-    getMoiveStats
+    getMoiveStats,
+    getMovieRecommendations,
+    getBillByUserId
 };

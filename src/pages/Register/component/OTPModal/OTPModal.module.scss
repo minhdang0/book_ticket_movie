@@ -1,0 +1,269 @@
+// OTPModal.module.scss
+
+// Animations
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal__content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+    overflow: hidden;
+}
+
+.modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0;
+
+    h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+    }
+}
+
+.close__button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background-color: #f5f5f5;
+        color: #333;
+    }
+}
+
+.modal__body {
+    padding: 24px;
+}
+
+.instruction {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: #333;
+    line-height: 1.5;
+}
+
+.sub__instruction {
+    text-align: center;
+    margin-bottom: 32px;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.otp__container {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.otp__input {
+    width: 48px;
+    height: 56px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.2s ease;
+    background-color: #fafafa;
+
+    &:focus {
+        border-color: #007bff;
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    &:not(:placeholder-shown) {
+        border-color: #28a745;
+        background-color: white;
+    }
+
+    &.error {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+
+    &:disabled {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
+}
+
+.error__message {
+    text-align: center;
+    color: #dc3545;
+    font-size: 14px;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background-color: #fff5f5;
+    border-radius: 6px;
+    border: 1px solid #f5c6cb;
+}
+
+.attempts {
+    display: block;
+    font-size: 12px;
+    margin-top: 4px;
+    color: #856404;
+}
+
+.countdown {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: #666;
+
+    .expired {
+        color: #dc3545;
+        font-weight: 500;
+    }
+}
+
+.button__group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.verify__button {
+    width: 100%;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.resend__button {
+    background: none;
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(.disabled) {
+        background-color: #007bff;
+        color: white;
+    }
+
+    &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        border-color: #ccc;
+        color: #666;
+
+        &:hover {
+            background-color: transparent;
+            color: #666;
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .modal__content {
+        width: 95%;
+        margin: 20px;
+        max-width: none;
+    }
+
+    .modal__header {
+        padding: 20px 20px 0;
+
+        h2 {
+            font-size: 20px;
+        }
+    }
+
+    .modal__body {
+        padding: 20px;
+    }
+
+    .otp__container {
+        gap: 8px;
+    }
+
+    .otp__input {
+        width: 40px;
+        height: 48px;
+        font-size: 18px;
+    }
+
+    .instruction {
+        font-size: 15px;
+    }
+
+    .sub__instruction {
+        font-size: 13px;
+        margin-bottom: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .otp__container {
+        gap: 6px;
+    }
+
+    .otp__input {
+        width: 36px;
+        height: 44px;
+        font-size: 16px;
+    }
+}

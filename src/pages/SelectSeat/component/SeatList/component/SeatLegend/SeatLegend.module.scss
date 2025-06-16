@@ -1,0 +1,40 @@
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+
+    .seat {
+        width: 24px;
+        height: 24px;
+        display: inline-block;
+        margin-right: 5px;
+        border-radius: 6px;
+    }
+
+    .available {
+        background-color: #c2c2c2;
+    }
+
+    .vip {
+        background: linear-gradient(135deg, #ffd700, #ffb347);
+        border: 1px solid #ff8c00;
+    }
+
+    .couple {
+        background-color: #ff3399;
+    }
+
+    .selected {
+        background-color: #003f87;
+    }
+
+    .selecting {
+        background-color: #a8d8ea;
+        border: 1px solid #63b3ed;
+    }
+
+    .sold {
+        background-color: #ff3333;
+    }
+}

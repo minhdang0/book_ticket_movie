@@ -1,159 +1,280 @@
 import { io, Socket } from 'socket.io-client';
-import type { DefaultEventsMap } from '@socket.io/component-emitter';
 
+export interface SocketEvents {
+    // Server to Client events
+    'seat:selected': (data: { seatId: string; seatName: string; showtimeId: string; sessionId: string; userId?: string }) => void;
+    'seat:unselected': (data: { seatId: string; seatName: string; showtimeId: string; sessionId: string; userId?: string }) => void;
+    'seat:cleared': (data: { seatIds: string[]; showtimeId: string; sessionId: string }) => void;
+    'seat:expired': (data: { seatIds: string[]; showtimeId: string; sessionId: string }) => void;
+    'seat:error': (data: { error: string; seatId?: string; showtimeId: string }) => void;
+    'showtime:status': (data: { showtimeId: string; occupiedSeats: string[]; activeSessions: any[] }) => void;
+    'session:extended': (data: { sessionId: string; showtimeId: string; expiresAt: number }) => void;
+    'user:joined': (data: { userId: string; sessionId: string; showtimeId: string }) => void;
+    'user:left': (data: { userId: string; sessionId: string; showtimeId: string }) => void;
+}
 
-type JoinOptions = {
-    sessionId?: string;
-    token?: string;
-};
+export interface ClientEvents {
+    // Client to Server events
+    'seat:select': (data: { seatId: string; seatName: string; showtimeId: string; sessionId: string }) => void;
+    'seat:unselect': (data: { seatId: string; seatName: string; showtimeId: string; sessionId: string }) => void;
+    'showtime:join': (data: { showtimeId: string; sessionId: string; userId?: string }) => void;
+    'showtime:leave': (data: { showtimeId: string; sessionId: string }) => void;
+    'session:extend': (data: { sessionId: string; showtimeId: string; minutes: number }) => void;
+    'heartbeat': (data: { sessionId: string; showtimeId: string }) => void;
+}
+
+type EventCallback<T = any> = (data: T) => void;
 
 class SocketService {
-    socket: Socket<DefaultEventsMap, DefaultEventsMap> | null = null;
-    isConnected: boolean = false;
-    sessionId: string | null = null;
-    showtimeId: string | null = null;
-    heartbeatInterval: NodeJS.Timeout | null = null;
+    private socket: Socket | null = null;
+    private isConnected: boolean = false;
+    private currentShowtimeId: string | null = null;
+    private currentSessionId: string | null = null;
+    private heartbeatInterval: NodeJS.Timeout | null = null;
+    private reconnectAttempts: number = 0;
+    private maxReconnectAttempts: number = 5;
+    private eventListeners: Map<string, Set<EventCallback>> = new Map();
 
-    // Kết nối tới server
-    connect(serverUrl = 'http://localhost:4000') {
-        if (this.socket) {
-            this.disconnect();
-        }
+    constructor(private serverUrl: string = 'http://localhost:4000') { }
 
-        this.socket = io(serverUrl, {
-            transports: ['websocket', 'polling'],
-            timeout: 20000,
+    // Connect to server
+    connect(): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            if (this.socket?.connected) {
+                resolve(true);
+                return;
+            }
+
+            this.socket = io(this.serverUrl, {
+                transports: ['websocket', 'polling'],
+                timeout: 20000,
+                reconnection: true,
+                reconnectionAttempts: this.maxReconnectAttempts,
+                reconnectionDelay: 1000,
+            });
+
+            this.setupEventListeners();
+
+            const timeout = setTimeout(() => {
+                reject(new Error('Connection timeout'));
+            }, 10000);
+
+            this.socket.on('connect', () => {
+                clearTimeout(timeout);
+                this.isConnected = true;
+                this.reconnectAttempts = 0;
+                console.log('✅ Socket connected:', this.socket?.id);
+                resolve(true);
+            });
+
+            this.socket.on('connect_error', (error) => {
+                clearTimeout(timeout);
+                console.error('❌ Socket connection error:', error);
+                reject(error);
+            });
         });
-
-        this.setupEventListeners();
-        return this.socket;
-    }
-    on(event: string, callback: (...args: any[]) => void) {
-        this.socket?.on(event, callback);
-    }
-    off(event: string, callback?: (...args: any[]) => void) {
-        // Nếu callback không truyền, sẽ remove tất cả listeners cho event đó
-        if (callback) {
-            this.socket?.off(event, callback);
-        } else {
-            this.socket?.off(event);
-        }
-    }
-    emit(event: string, data: any) {
-        this.socket?.emit(event, data);
     }
 
+    // Setup internal event listeners
+    private setupEventListeners(): void {
+        if (!this.socket) return;
 
-    // Lắng nghe các sự kiện socket
-    setupEventListeners() {
-        this.socket?.on('connect', () => {
-            console.log('✅ Connected to server:', this.socket?.id);
+        this.socket.on('connect', () => {
             this.isConnected = true;
+            this.reconnectAttempts = 0;
+            console.log('✅ Socket reconnected:', this.socket?.id);
+
+            // Rejoin showtime if we were in one
+            if (this.currentShowtimeId && this.currentSessionId) {
+                this.joinShowtime(this.currentShowtimeId, this.currentSessionId);
+            }
         });
 
-        this.socket?.on('disconnect', (reason) => {
-            console.log('❌ Disconnected from server:', reason);
+        this.socket.on('disconnect', (reason) => {
             this.isConnected = false;
             this.stopHeartbeat();
+            console.log('❌ Socket disconnected:', reason);
         });
 
-        this.socket?.on('connect_error', (error: any) => {
-            console.error('Connection error:', error);
+        this.socket.on('reconnect_attempt', (attempt) => {
+            this.reconnectAttempts = attempt;
+            console.log(`🔄 Reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         });
 
-        this.socket?.on('initialSeatStatus', (data: any) => this.handleInitialSeatStatus(data));
-        this.socket?.on('seatSelected', (data: any) => this.handleSeatSelected(data));
-        this.socket?.on('seatUnselected', (data: any) => this.handleSeatUnselected(data));
-        this.socket?.on('seatSelectionError', (data: any) => this.handleSeatSelectionError(data));
-        this.socket?.on('seatStatusChanged', (data: any) => this.handleSeatStatusChanged(data));
-        this.socket?.on('seatsExpired', (data: any) => this.handleSeatsExpired(data));
-        this.socket?.on('heartbeatResponse', (data: any) => this.handleHeartbeatResponse(data));
-        this.socket?.on('sessionExtended', (data: any) => this.handleSessionExtended(data));
-        this.socket?.on('mySeats', (data: any) => this.handleMySeats(data));
-        this.socket?.on('userJoined', (data: any) => console.log('👋 User joined:', data));
-        this.socket?.on('userLeft', (data: any) => console.log('👋 User left:', data));
-        this.socket?.on('error', (data: any) => this.handleError(data));
+        this.socket.on('reconnect_failed', () => {
+            console.error('❌ Failed to reconnect after', this.maxReconnectAttempts, 'attempts');
+        });
+
+        // Forward all events to registered listeners
+        const eventNames: (keyof SocketEvents)[] = [
+            'seat:selected',
+            'seat:unselected',
+            'seat:cleared',
+            'seat:expired',
+            'seat:error',
+            'showtime:status',
+            'session:extended',
+            'user:joined',
+            'user:left'
+        ];
+
+        eventNames.forEach(eventName => {
+            this.socket!.on(eventName, (data) => {
+                this.emitToListeners(eventName, data);
+            });
+        });
     }
 
-    // Tham gia showtime
-    joinShowtime(showtimeId: string, options: JoinOptions = {}) {
+    // Register event listener
+    on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]): void {
+        if (!this.eventListeners.has(event)) {
+            this.eventListeners.set(event, new Set());
+        }
+        this.eventListeners.get(event)!.add(callback as EventCallback);
+    }
+
+    // Unregister event listener
+    off<K extends keyof SocketEvents>(event: K, callback?: SocketEvents[K]): void {
+        const listeners = this.eventListeners.get(event);
+        if (!listeners) return;
+
+        if (callback) {
+            listeners.delete(callback as EventCallback);
+        } else {
+            listeners.clear();
+        }
+    }
+
+    // Emit to registered listeners
+    private emitToListeners(event: string, data: any): void {
+        const listeners = this.eventListeners.get(event);
+        if (!listeners) return;
+
+        listeners.forEach(callback => {
+            try {
+                callback(data);
+            } catch (error) {
+                console.error(`Error in ${event} listener:`, error);
+            }
+        });
+    }
+
+    // Join showtime room
+    async joinShowtime(showtimeId: string, sessionId: string, userId?: string): Promise<void> {
         if (!this.socket || !this.isConnected) {
             throw new Error('Socket not connected');
         }
 
-        this.showtimeId = showtimeId;
-        this.sessionId = options.sessionId || `session_${Date.now()}_${Math.random()}`;
+        this.currentShowtimeId = showtimeId;
+        this.currentSessionId = sessionId;
 
         const joinData = {
             showtimeId,
-            sessionId: this.sessionId,
-            token: options.token || localStorage.getItem('authToken')
+            sessionId,
+            userId: userId || `user_${Date.now()}`
         };
 
-        this.socket.emit('joinShowtime', joinData);
+        console.log('🎬 Joining showtime:', joinData);
+        this.socket.emit('showtime:join', joinData);
         this.startHeartbeat();
-
-        return this.sessionId;
     }
 
-    // Chọn ghế
-    selectSeat(seatId: string, seatName: string) {
-        if (!this.socket || !this.isConnected) {
-            throw new Error('Socket not connected');
+    // Leave showtime room
+    async leaveShowtime(): Promise<void> {
+        if (!this.socket || !this.currentShowtimeId || !this.currentSessionId) {
+            return;
         }
 
-        this.socket.emit('selectSeat', { seatId, seatName });
+        console.log('🎬 Leaving showtime:', this.currentShowtimeId);
+        this.socket.emit('showtime:leave', {
+            showtimeId: this.currentShowtimeId,
+            sessionId: this.currentSessionId
+        });
+
+        this.stopHeartbeat();
+        this.currentShowtimeId = null;
+        this.currentSessionId = null;
     }
 
-    // Bỏ chọn ghế
-    unselectSeat(seatId: string) {
-        if (!this.socket || !this.isConnected) {
-            throw new Error('Socket not connected');
+    // Select seat
+    selectSeat(seatId: string, seatName: string): void {
+        if (!this.socket || !this.isConnected || !this.currentShowtimeId || !this.currentSessionId) {
+            throw new Error('Socket not connected or not in showtime');
         }
 
-        this.socket.emit('unselectSeat', { seatId });
+        const data = {
+            seatId,
+            seatName,
+            showtimeId: this.currentShowtimeId,
+            sessionId: this.currentSessionId
+        };
+
+        console.log('🪑 Selecting seat:', data);
+        this.socket.emit('seat:select', data);
     }
 
-    // Lấy danh sách ghế của tôi
-    getMySeats() {
-        if (!this.socket || !this.isConnected) {
-            throw new Error('Socket not connected');
+    // Unselect seat
+    unselectSeat(seatId: string, seatName: string): void {
+        if (!this.socket || !this.isConnected || !this.currentShowtimeId || !this.currentSessionId) {
+            throw new Error('Socket not connected or not in showtime');
         }
 
-        this.socket.emit('getMySeats');
+        const data = {
+            seatId,
+            seatName,
+            showtimeId: this.currentShowtimeId,
+            sessionId: this.currentSessionId
+        };
+
+        console.log('🪑 Unselecting seat:', data);
+        this.socket.emit('seat:unselect', data);
     }
 
-    // Gia hạn phiên
-    extendSession(minutes = 10) {
-        if (!this.socket || !this.isConnected) {
-            throw new Error('Socket not connected');
+    // Extend session
+    extendSession(minutes: number = 10): void {
+        if (!this.socket || !this.isConnected || !this.currentShowtimeId || !this.currentSessionId) {
+            throw new Error('Socket not connected or not in showtime');
         }
 
-        this.socket.emit('extendSession', { minutes });
+        const data = {
+            sessionId: this.currentSessionId,
+            showtimeId: this.currentShowtimeId,
+            minutes
+        };
+
+        console.log('⏱️ Extending session:', data);
+        this.socket.emit('session:extend', data);
     }
 
-    // Bắt đầu heartbeat
-    startHeartbeat() {
+    // Start heartbeat
+    private startHeartbeat(): void {
         this.stopHeartbeat();
 
         this.heartbeatInterval = setInterval(() => {
-            if (this.socket && this.isConnected) {
-                this.socket.emit('heartbeat');
+            if (this.socket && this.isConnected && this.currentShowtimeId && this.currentSessionId) {
+                this.socket.emit('heartbeat', {
+                    sessionId: this.currentSessionId,
+                    showtimeId: this.currentShowtimeId
+                });
             }
-        }, 30000); // 30s
+        }, 30000); // 30 seconds
     }
 
-    // Dừng heartbeat
-    stopHeartbeat() {
+    // Stop heartbeat
+    private stopHeartbeat(): void {
         if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval);
             this.heartbeatInterval = null;
         }
     }
 
-    // Ngắt kết nối
-    disconnect() {
+    // Disconnect
+    disconnect(): void {
         this.stopHeartbeat();
+
+        if (this.currentShowtimeId && this.currentSessionId) {
+            this.leaveShowtime();
+        }
 
         if (this.socket) {
             this.socket.disconnect();
@@ -161,51 +282,25 @@ class SocketService {
         }
 
         this.isConnected = false;
-        this.sessionId = null;
-        this.showtimeId = null;
+        this.currentShowtimeId = null;
+        this.currentSessionId = null;
+        this.eventListeners.clear();
     }
 
-    // Các hàm handler (override tùy component)
-    handleInitialSeatStatus(data: any) {
-        console.log('Handle initial seat status:', data);
+    // Getters
+    get connected(): boolean {
+        return this.isConnected && this.socket?.connected === true;
     }
 
-    handleSeatSelected(data: any) {
-        console.log('Handle seat selected:', data);
+    get showtimeId(): string | null {
+        return this.currentShowtimeId;
     }
 
-    handleSeatUnselected(data: any) {
-        console.log('Handle seat unselected:', data);
-    }
-
-    handleSeatSelectionError(data: any) {
-        console.log('Handle seat selection error:', data);
-    }
-
-    handleSeatStatusChanged(data: any) {
-        console.log('Handle seat status changed:', data);
-    }
-
-    handleSeatsExpired(data: any) {
-        console.log('Handle seats expired:', data);
-    }
-
-    handleHeartbeatResponse(data: any) {
-        console.log('Handle heartbeat response:', data);
-    }
-
-    handleSessionExtended(data: any) {
-        console.log('Handle session extended:', data);
-    }
-
-    handleMySeats(data: any) {
-        console.log('Handle my seats:', data);
-    }
-
-    handleError(data: any) {
-        console.error('Handle error:', data);
+    get sessionId(): string | null {
+        return this.currentSessionId;
     }
 }
 
+// Singleton instance
 const socketService = new SocketService();
 export default socketService;

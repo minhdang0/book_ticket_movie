@@ -1,0 +1,80 @@
+.seat {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    background-color: #c2c2c2;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.available {
+        background-color: #c2c2c2;
+    }
+
+    &.vip {
+        background: linear-gradient(135deg, #ffd700, #ffb347);
+        color: #8b4513;
+        font-weight: 900;
+        box-shadow: 0 2px 4px rgba(255, 140, 0, 0.3);
+
+        &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #ffed4e, #ffc947);
+            box-shadow: 0 4px 8px rgba(255, 140, 0, 0.5);
+        }
+    }
+
+    &.selecting {
+        background-color: #a8d8ea;
+        color: #2c5282;
+        border: 2px solid #63b3ed;
+        cursor: not-allowed;
+        opacity: 0.8;
+
+        &:hover {
+            background-color: #a8d8ea;
+            transform: none;
+        }
+    }
+
+    &.selected {
+        background-color: #003f87;
+        color: white;
+    }
+
+    &.reserved {
+        background-color: #33ccff;
+        color: white;
+    }
+
+    &.sold {
+        background-color: #ff3333;
+        color: white;
+        cursor: not-allowed;
+    }
+
+    &:disabled {
+        opacity: 0.7;
+    }
+
+    &:hover:not(:disabled) {
+        transform: scale(1.1);
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    }
+
+    &.couple {
+        width: 76px;
+        background-color: #ff3399;
+
+        &.vip {
+            background: linear-gradient(135deg, #ff3399, #e91e63);
+        }
+    }
+
+    &.loading {
+        opacity: 0.6;
+        cursor: wait;
+    }
+}
